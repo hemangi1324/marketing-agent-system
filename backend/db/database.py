@@ -1,0 +1,1088 @@
+"""
+db/database.py
+--------------
+Database connection pool and all query helper functions.
+Every file in the project imports from here — never connects directly.
+
+Why a connection pool?
+  Multiple agents run simultaneously. Without a pool, each agent
+  opens its own connection. With 5 agents + monitor + API = 7+
+  connections opening/closing constantly. A pool keeps 5-10
+  connections open and reuses them — much faster and safer.
+"""
+
+import psycopg2
+import psycopg2.extras
+import psycopg2.pool
+import json
+from contextlib import contextmanager
+from datetime import datetime
+from typing import Optional
+
+from backend.config import DATABASE_URL
+
+# ── Connection pool ───────────────────────────────────────────
+# minconn=2: always keep 2 connections open
+# maxconn=10: never open more than 10 at once
+_pool: psycopg2.pool.ThreadedConnectionPool = None
+
+def init_pool():
+    """Call this once when the app starts."""
+    global _pool
+    _pool = psycopg2.pool.ThreadedConnectionPool(
+        minconn=2,
+        maxconn=10,
+        dsn=DATABASE_URL
+    )
+    print("[DB] Connection pool initialised.")
+
+def get_pool():
+    global _pool
+    if _pool is None:
+        init_pool()
+    return _pool
+
+@contextmanager
+def get_conn():
+    """
+    Context manager for database connections.
+    Always use this pattern:
+
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(...)
+                conn.commit()
+
+    Connection is returned to pool automatically when the
+    'with' block exits — even if an exception is raised.
+    """
+    pool = get_pool()
+    conn = pool.getconn()
+    conn.cursor_factory = psycopg2.extras.RealDictCursor
+    try:
+        yield conn
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        pool.putconn(conn)
+
+
+# ── Schema creation ───────────────────────────────────────────
+
+def create_tables():
+    """
+    Creates all tables if they don't exist.
+    Safe to call multiple times (IF NOT EXISTS).
+    """
+    sql = open("data/schema.sql").read()
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql)
+        conn.commit()
+    print("[DB] All tables created.")
+
+
+# ════════════════════════════════════════════════════════════════
+# COMPANY QUERIES
+# These are called when user fills the onboarding form
+# ════════════════════════════════════════════════════════════════
+
+def create_company(
+    name: str,
+    industry: str,
+    website: str,
+    brand_voice: str,
+    avoid_topics: str,
+    primary_color: str = "#000000",
+    country: str = "India"
+) -> int:
+    """
+    Creates a new company from onboarding form input.
+    Returns the new company ID.
+
+    All values come from the user — NOTHING is hardcoded.
+    """
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO companies
+                    (name, industry, website, brand_voice,
+                     avoid_topics, primary_color, country)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (name, industry, website, brand_voice,
+                  avoid_topics, primary_color, country))
+            company_id = cur.fetchone()["id"]
+        conn.commit()
+    return company_id
+
+def get_company(company_id: int) -> dict:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM companies WHERE id = %s", (company_id,))
+            return dict(cur.fetchone() or {})
+
+def get_all_companies() -> list:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT id, name, industry, primary_color FROM companies ORDER BY created_at DESC")
+            return [dict(r) for r in cur.fetchall()]
+
+def update_company(company_id: int, **fields) -> None:
+    """Update any company fields. Called when user edits profile."""
+    allowed = {"name","industry","website","brand_voice","avoid_topics","primary_color"}
+    updates = {k: v for k, v in fields.items() if k in allowed}
+    if not updates:
+        return
+    set_clause = ", ".join(f"{k} = %s" for k in updates)
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE companies SET {set_clause} WHERE id = %s",
+                (*updates.values(), company_id)
+            )
+        conn.commit()
+
+
+# ════════════════════════════════════════════════════════════════
+# BRAND PROFILE QUERIES
+# User enters tone, power words, avoid phrases through the form
+# ════════════════════════════════════════════════════════════════
+
+def create_brand_profile(
+    company_id: int,
+    brand_name: str,
+    tone_of_voice: str,           # user types this
+    power_words: str,             # user types this — "glow, luxury, limited"
+    avoid_phrases: str,           # user types this — "guaranteed, cheapest"
+    preferred_channels: str,      # user selects checkboxes
+    competitors_avoid: str        # user types competitor names
+) -> int:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO brand_profiles
+                    (company_id, brand_name, tone_of_voice, power_words,
+                     avoid_phrases, preferred_channels, competitors_avoid)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (company_id, brand_name, tone_of_voice, power_words,
+                  avoid_phrases, preferred_channels, competitors_avoid))
+            profile_id = cur.fetchone()["id"]
+        conn.commit()
+    return profile_id
+
+def get_brand_profile(company_id: int) -> dict:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT * FROM brand_profiles
+                WHERE company_id = %s
+                ORDER BY created_at DESC LIMIT 1
+            """, (company_id,))
+            row = cur.fetchone()
+            return dict(row) if row else {}
+
+def update_brand_profile(profile_id: int, **fields) -> None:
+    allowed = {"tone_of_voice","power_words","avoid_phrases",
+               "preferred_channels","competitors_avoid"}
+    updates = {k: v for k, v in fields.items() if k in allowed}
+    if not updates:
+        return
+    set_clause = ", ".join(f"{k} = %s" for k in updates)
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE brand_profiles SET {set_clause} WHERE id = %s",
+                (*updates.values(), profile_id)
+            )
+        conn.commit()
+
+
+# ════════════════════════════════════════════════════════════════
+# AUDIENCE SEGMENT QUERIES
+# User defines their target audience through the form
+# ════════════════════════════════════════════════════════════════
+
+def create_audience_segment(
+    company_id: int,
+    segment_name: str,
+    age_range: str,
+    gender: str,
+    location_tier: str,
+    interests: str,               # user types: "skincare, K-beauty, makeup tutorials"
+    buying_behaviour: str,        # user types: "impulse buyer, responds to flash sales"
+    platform_preference: str      # user selects: "instagram, youtube"
+) -> int:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO audience_segments
+                    (company_id, segment_name, age_range, gender,
+                     location_tier, interests, buying_behaviour,
+                     platform_preference)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                RETURNING id
+            """, (company_id, segment_name, age_range, gender,
+                  location_tier, interests, buying_behaviour,
+                  platform_preference))
+            seg_id = cur.fetchone()["id"]
+        conn.commit()
+    return seg_id
+
+def get_audience_segments(company_id: int) -> list:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT * FROM audience_segments
+                WHERE company_id = %s
+                ORDER BY created_at DESC
+            """, (company_id,))
+            return [dict(r) for r in cur.fetchall()]
+
+def get_audience_segment(segment_id: int) -> dict:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM audience_segments WHERE id = %s", (segment_id,))
+            row = cur.fetchone()
+            return dict(row) if row else {}
+
+
+# ════════════════════════════════════════════════════════════════
+# CAMPAIGN OFFER QUERIES
+# User enters financial rules — agents read but cannot modify
+# ════════════════════════════════════════════════════════════════
+
+def create_campaign_offer(
+    campaign_id: int,
+    min_discount_pct: int,        # user enters — can set min=max to lock
+    max_discount_pct: int,        # user enters
+    promo_code: str,              # user enters — e.g. "PINK60"
+    offer_end_datetime: str,      # user picks from date picker
+    eligible_categories: str,     # user types — "skincare, lipsticks"
+    excluded_items: str,          # user types — "luxury brands"
+    free_shipping: bool,
+    min_order_value_inr: int,
+    approved_by: str              # user enters their name
+) -> int:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO campaign_offers
+                    (campaign_id, min_discount_pct, max_discount_pct,
+                     promo_code, offer_end_datetime, eligible_categories,
+                     excluded_items, free_shipping, min_order_value_inr,
+                     approved_by, approved_at)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s, NOW())
+                RETURNING id
+            """, (campaign_id, min_discount_pct, max_discount_pct,
+                  promo_code, offer_end_datetime, eligible_categories,
+                  excluded_items, free_shipping, min_order_value_inr,
+                  approved_by))
+            offer_id = cur.fetchone()["id"]
+        conn.commit()
+    return offer_id
+
+def get_campaign_offer(campaign_id: int) -> dict:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT * FROM campaign_offers WHERE campaign_id = %s
+            """, (campaign_id,))
+            row = cur.fetchone()
+            return dict(row) if row else {}
+
+
+# ════════════════════════════════════════════════════════════════
+# CAMPAIGN QUERIES
+# ════════════════════════════════════════════════════════════════
+
+def create_campaign(
+    company_id: int,
+    brand_profile_id: int,
+    audience_segment_id: int,
+    name: str,
+    channel: str,
+    campaign_type: str = "performance",
+    triggered_by: str = "human",
+    manual_prompt: Optional[str] = None,
+    ctr: float = 0.0,
+    open_rate: float = 0.0,
+    roas: float = 0.0,
+    industry_avg_ctr: float = 2.1,
+    budget_inr: int = 0,
+    original_subject_line: Optional[str] = None,
+    original_send_time: Optional[str] = None,
+    why_failing: Optional[str] = None
+) -> int:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO campaigns
+                    (company_id, brand_profile_id, audience_segment_id,
+                     name, channel, campaign_type, triggered_by, manual_prompt,
+                     ctr, open_rate, roas, industry_avg_ctr, budget_inr,
+                     original_subject_line, original_send_time, why_failing,
+                     status, heal_attempts)
+                VALUES
+                    (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,
+                     'active', 0)
+                RETURNING id
+            """, (
+                company_id, brand_profile_id, audience_segment_id,
+                name, channel, campaign_type, triggered_by, manual_prompt,
+                ctr, open_rate, roas, industry_avg_ctr, budget_inr,
+                original_subject_line, original_send_time, why_failing
+            ))
+            campaign_id = cur.fetchone()["id"]
+        conn.commit()
+    return campaign_id
+
+def get_campaign(campaign_id: int) -> dict:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM campaigns WHERE id = %s", (campaign_id,))
+            row = cur.fetchone()
+            return dict(row) if row else {}
+
+def get_campaigns_for_company(company_id: int) -> list:
+    """Returns campaigns with their latest generated content and risk scores."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    c.*,
+                    ga.email_subject,
+                    ga.instagram_caption,
+                    ga.chosen_discount_pct,
+                    ra.brand_safety_score,
+                    ra.legal_risk_score,
+                    ra.cultural_sensitivity_score,
+                    ra.green_light,
+                    pa.id AS approval_id,
+                    pa.status AS approval_status
+                FROM campaigns c
+                LEFT JOIN LATERAL (
+                    SELECT * FROM generated_assets
+                    WHERE campaign_id = c.id
+                    ORDER BY created_at DESC LIMIT 1
+                ) ga ON TRUE
+                LEFT JOIN LATERAL (
+                    SELECT * FROM risk_assessments
+                    WHERE campaign_id = c.id
+                    ORDER BY created_at DESC LIMIT 1
+                ) ra ON TRUE
+                LEFT JOIN LATERAL (
+                    SELECT id, status FROM pending_approvals
+                    WHERE campaign_id = c.id AND status = 'pending'
+                    ORDER BY created_at DESC LIMIT 1
+                ) pa ON TRUE
+                WHERE c.company_id = %s
+                ORDER BY c.updated_at DESC
+            """, (company_id,))
+            return [dict(r) for r in cur.fetchall()]
+
+def get_failing_campaigns(
+    ctr_threshold_email: float,
+    ctr_threshold_instagram: float,
+    max_heal_attempts: int
+) -> list:
+    """Called by monitor every 60 seconds."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT c.*, co.promo_code, co.offer_end_datetime,
+                       co.min_discount_pct, co.max_discount_pct,
+                       co.eligible_categories, co.excluded_items,
+                       co.free_shipping
+                FROM campaigns c
+                LEFT JOIN campaign_offers co ON co.campaign_id = c.id
+                WHERE c.status = 'active'
+                  AND c.heal_attempts < %s
+                  AND (
+                      (c.channel = 'email'     AND c.ctr < %s) OR
+                      (c.channel = 'instagram' AND c.ctr < %s) OR
+                      (c.channel = 'multi'     AND c.ctr < %s)
+                  )
+                ORDER BY c.ctr ASC
+                LIMIT 5
+            """, (max_heal_attempts,
+                  ctr_threshold_email,
+                  ctr_threshold_instagram,
+                  ctr_threshold_email))
+            return [dict(r) for r in cur.fetchall()]
+
+def update_campaign_status(campaign_id: int, status: str) -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE campaigns
+                SET status = %s, updated_at = NOW()
+                WHERE id = %s
+            """, (status, campaign_id))
+        conn.commit()
+
+def increment_heal_attempts(campaign_id: int) -> int:
+    """Increments heal counter and returns new value."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE campaigns
+                SET heal_attempts = heal_attempts + 1, updated_at = NOW()
+                WHERE id = %s
+                RETURNING heal_attempts
+            """, (campaign_id,))
+            return cur.fetchone()["heal_attempts"]
+        conn.commit()
+
+def set_campaign_metrics(
+    campaign_id: int,
+    ctr: float,
+    open_rate: float = 0.0,
+    roas: float = 0.0
+) -> None:
+    """Called when user enters real performance numbers, or demo button sets them."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE campaigns
+                SET ctr = %s, open_rate = %s, roas = %s, updated_at = NOW()
+                WHERE id = %s
+            """, (ctr, open_rate, roas, campaign_id))
+        conn.commit()
+
+
+# ════════════════════════════════════════════════════════════════
+# FULL CAMPAIGN CONTEXT
+# This is what gets passed to the Strategy Agent
+# All company data + audience + offer rules assembled in one query
+# ════════════════════════════════════════════════════════════════
+
+def get_full_campaign_context(campaign_id: int) -> dict:
+    """
+    Single query that joins everything the Strategy Agent needs.
+    Returns a flat dict — agents don't need to know about JOIN logic.
+    """
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    -- Campaign fields
+                    c.id              AS campaign_id,
+                    c.name            AS campaign_name,
+                    c.channel,
+                    c.campaign_type,
+                    c.triggered_by,
+                    c.manual_prompt,
+                    c.ctr,
+                    c.open_rate,
+                    c.roas,
+                    c.industry_avg_ctr,
+                    c.original_subject_line,
+                    c.original_send_time,
+                    c.why_failing,
+                    c.heal_attempts,
+                    c.budget_inr,
+
+                    -- Company fields
+                    co.name           AS company_name,
+                    co.industry,
+                    co.brand_voice,
+                    co.avoid_topics,
+
+                    -- Brand profile fields (USER-ENTERED)
+                    bp.tone_of_voice,
+                    bp.power_words,
+                    bp.avoid_phrases,
+                    bp.preferred_channels,
+                    bp.competitors_avoid,
+
+                    -- Audience segment fields (USER-ENTERED)
+                    au.segment_name,
+                    au.age_range,
+                    au.gender,
+                    au.location_tier,
+                    au.interests,
+                    au.buying_behaviour,
+                    au.platform_preference,
+
+                    -- Offer rules (USER-ENTERED — agents read only)
+                    of.min_discount_pct,
+                    of.max_discount_pct,
+                    of.promo_code,
+                    of.offer_end_datetime,
+                    of.eligible_categories,
+                    of.excluded_items,
+                    of.free_shipping,
+                    of.min_order_value_inr,
+                    of.approved_by
+
+                FROM campaigns c
+                JOIN companies co        ON c.company_id = co.id
+                JOIN brand_profiles bp   ON c.brand_profile_id = bp.id
+                JOIN audience_segments au ON c.audience_segment_id = au.id
+                LEFT JOIN campaign_offers of ON of.campaign_id = c.id
+                WHERE c.id = %s
+            """, (campaign_id,))
+            row = cur.fetchone()
+            return dict(row) if row else {}
+
+
+# ════════════════════════════════════════════════════════════════
+# REASONING LOG
+# Written by every agent — powers the UI monologue panel
+# ════════════════════════════════════════════════════════════════
+
+def log_reasoning(
+    campaign_id: int,
+    agent_name: str,
+    status: str,
+    reasoning_summary: str,
+    output: str = "",
+    input_summary: str = "",
+    tokens_used: int = 0,
+    cost_usd: float = 0.0,
+    model_used: str = "gemini-2.0-flash",
+    duration_ms: int = 0,
+    attempt_number: int = 1
+) -> int:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO reasoning_log
+                    (campaign_id, attempt_number, agent_name, status,
+                     input_summary, output, reasoning_summary,
+                     tokens_used, cost_usd, model_used, duration_ms)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                RETURNING id
+            """, (
+                campaign_id, attempt_number, agent_name, status,
+                input_summary, output, reasoning_summary,
+                tokens_used, cost_usd, model_used, duration_ms
+            ))
+            log_id = cur.fetchone()["id"]
+        conn.commit()
+    return log_id
+
+def get_reasoning_since(campaign_id: int, since_id: int = 0) -> list:
+    """UI polls this every 2 seconds for the monologue panel."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, agent_name, reasoning_summary, status,
+                       cost_usd, model_used, duration_ms, created_at
+                FROM reasoning_log
+                WHERE campaign_id = %s AND id > %s
+                ORDER BY id ASC
+                LIMIT 50
+            """, (campaign_id, since_id))
+            return [dict(r) for r in cur.fetchall()]
+
+def get_previous_attempt_reasoning(campaign_id: int, attempt_number: int) -> list:
+    """
+    Strategy Agent calls this when heal_attempts > 0.
+    Returns what went wrong in the previous attempt so the
+    agent can try a completely different approach.
+    """
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT agent_name, reasoning_summary, output
+                FROM reasoning_log
+                WHERE campaign_id = %s
+                  AND attempt_number = %s
+                  AND status = 'completed'
+                ORDER BY id ASC
+            """, (campaign_id, attempt_number - 1))
+            return [dict(r) for r in cur.fetchall()]
+
+
+# ════════════════════════════════════════════════════════════════
+# GENERATED ASSETS
+# ════════════════════════════════════════════════════════════════
+
+def save_generated_assets(
+    campaign_id: int,
+    attempt_number: int,
+    email_subject: str,
+    email_preheader: str,
+    email_body: str,
+    email_cta: str,
+    instagram_caption: str,
+    instagram_hashtags: list,
+    instagram_visual_direction: str,
+    linkedin_headline: str,
+    linkedin_body: str,
+    linkedin_cta: str,
+    whatsapp_message: str,
+    send_time_recommendation: str,
+    chosen_discount_pct: int,
+    agent_reasoning: str,
+    strategy_json: dict,
+    trending_hooks_used: list
+) -> int:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO generated_assets
+                    (campaign_id, attempt_number,
+                     email_subject, email_preheader, email_body, email_cta,
+                     instagram_caption, instagram_hashtags, instagram_visual_direction,
+                     linkedin_headline, linkedin_body, linkedin_cta,
+                     whatsapp_message, send_time_recommendation,
+                     chosen_discount_pct, agent_reasoning,
+                     strategy_json, trending_hooks_used)
+                VALUES
+                    (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                RETURNING id
+            """, (
+                campaign_id, attempt_number,
+                email_subject, email_preheader, email_body, email_cta,
+                instagram_caption,
+                json.dumps(instagram_hashtags),
+                instagram_visual_direction,
+                linkedin_headline, linkedin_body, linkedin_cta,
+                whatsapp_message, send_time_recommendation,
+                chosen_discount_pct, agent_reasoning,
+                json.dumps(strategy_json),
+                json.dumps(trending_hooks_used)
+            ))
+            asset_id = cur.fetchone()["id"]
+        conn.commit()
+    return asset_id
+
+def get_latest_assets(campaign_id: int) -> dict:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT * FROM generated_assets
+                WHERE campaign_id = %s
+                ORDER BY created_at DESC LIMIT 1
+            """, (campaign_id,))
+            row = cur.fetchone()
+            return dict(row) if row else {}
+
+
+# ════════════════════════════════════════════════════════════════
+# RISK ASSESSMENTS
+# ════════════════════════════════════════════════════════════════
+
+def save_risk_assessment(
+    asset_id: int,
+    campaign_id: int,
+    brand_safety_score: int,
+    brand_safety_note: str,
+    legal_risk_score: int,
+    legal_risk_note: str,
+    cultural_sensitivity_score: int,
+    cultural_sensitivity_note: str,
+    overall_recommendation: str,
+    green_light: bool,
+    decision_reason: str
+) -> int:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO risk_assessments
+                    (asset_id, campaign_id,
+                     brand_safety_score, brand_safety_note,
+                     legal_risk_score, legal_risk_note,
+                     cultural_sensitivity_score, cultural_sensitivity_note,
+                     overall_recommendation, green_light, decision_reason)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                RETURNING id
+            """, (
+                asset_id, campaign_id,
+                brand_safety_score, brand_safety_note,
+                legal_risk_score, legal_risk_note,
+                cultural_sensitivity_score, cultural_sensitivity_note,
+                overall_recommendation, green_light, decision_reason
+            ))
+            risk_id = cur.fetchone()["id"]
+        conn.commit()
+    return risk_id
+
+def get_latest_risk(campaign_id: int) -> dict:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT * FROM risk_assessments
+                WHERE campaign_id = %s
+                ORDER BY created_at DESC LIMIT 1
+            """, (campaign_id,))
+            row = cur.fetchone()
+            return dict(row) if row else {}
+
+
+# ════════════════════════════════════════════════════════════════
+# PENDING APPROVALS
+# ════════════════════════════════════════════════════════════════
+
+def create_pending_approval(
+    campaign_id: int,
+    asset_id: int,
+    risk_id: int
+) -> int:
+    from datetime import timedelta
+    from backend.config import APPROVAL_EXPIRY_HOURS
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO pending_approvals
+                    (campaign_id, asset_id, risk_id, status, expires_at)
+                VALUES (%s, %s, %s, 'pending',
+                        NOW() + INTERVAL '%s hours')
+                RETURNING id
+            """, (campaign_id, asset_id, risk_id, APPROVAL_EXPIRY_HOURS))
+            approval_id = cur.fetchone()["id"]
+        conn.commit()
+    return approval_id
+
+def get_pending_approval(approval_id: int) -> dict:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT pa.*, ga.*, ra.brand_safety_score,
+                       ra.legal_risk_score, ra.cultural_sensitivity_score,
+                       ra.green_light, ra.overall_recommendation
+                FROM pending_approvals pa
+                JOIN generated_assets ga ON pa.asset_id = ga.id
+                JOIN risk_assessments ra ON pa.risk_id = ra.id
+                WHERE pa.id = %s
+            """, (approval_id,))
+            row = cur.fetchone()
+            return dict(row) if row else {}
+
+def resolve_approval(
+    approval_id: int,
+    status: str,              # "approved" | "approved_with_edits" | "rejected"
+    decided_by: str,
+    human_edits: dict = None,
+    rejection_reason: str = ""
+) -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE pending_approvals
+                SET status = %s,
+                    human_edits = %s,
+                    rejection_reason = %s,
+                    decided_by = %s,
+                    decided_at = NOW()
+                WHERE id = %s
+            """, (
+                status,
+                json.dumps(human_edits) if human_edits else None,
+                rejection_reason,
+                decided_by,
+                approval_id
+            ))
+        conn.commit()
+
+
+# ════════════════════════════════════════════════════════════════
+# PUBLISHED POSTS
+# ════════════════════════════════════════════════════════════════
+
+def save_published_post(
+    campaign_id: int,
+    approval_id: int,
+    channel: str,
+    final_subject: str = None,
+    final_body: str = None,
+    final_caption: str = None,
+    final_hashtags: list = None,
+    sendgrid_message_id: str = None,
+    external_post_id: str = None,
+    send_status: str = "sent",
+    recipient_count: int = 1,
+    recipient_email: str = None
+) -> int:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO published_posts
+                    (campaign_id, approval_id, channel,
+                     final_subject, final_body, final_caption, final_hashtags,
+                     sendgrid_message_id, external_post_id,
+                     send_status, recipient_count, recipient_email)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                RETURNING id
+            """, (
+                campaign_id, approval_id, channel,
+                final_subject, final_body, final_caption,
+                json.dumps(final_hashtags or []),
+                sendgrid_message_id, external_post_id,
+                send_status, recipient_count, recipient_email
+            ))
+            post_id = cur.fetchone()["id"]
+        conn.commit()
+    return post_id
+
+
+# ════════════════════════════════════════════════════════════════
+# PERFORMANCE SNAPSHOTS
+# ════════════════════════════════════════════════════════════════
+
+def add_performance_snapshot(
+    campaign_id: int,
+    ctr: float,
+    open_rate: float = 0.0,
+    roas: float = 0.0,
+    click_count: int = 0,
+    attempt_number: int = 1,
+    phase: str = "attempt_1",
+    healed: bool = False,
+    note: str = "",
+    post_id: int = None
+) -> int:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO performance_snapshots
+                    (campaign_id, post_id, attempt_number,
+                     ctr, open_rate, roas, click_count,
+                     phase, healed, note)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                RETURNING id
+            """, (
+                campaign_id, post_id, attempt_number,
+                ctr, open_rate, roas, click_count,
+                phase, healed, note
+            ))
+            snap_id = cur.fetchone()["id"]
+        conn.commit()
+    return snap_id
+
+def get_performance_snapshots(campaign_id: int) -> list:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT ctr, open_rate, roas, phase, healed, note, recorded_at
+                FROM performance_snapshots
+                WHERE campaign_id = %s
+                ORDER BY recorded_at ASC
+            """, (campaign_id,))
+            return [dict(r) for r in cur.fetchall()]
+
+def is_campaign_healed(campaign_id: int, ctr_threshold: float) -> bool:
+    """Analytics agent calls this to check if latest CTR is above threshold."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT ctr FROM performance_snapshots
+                WHERE campaign_id = %s
+                ORDER BY recorded_at DESC LIMIT 1
+            """, (campaign_id,))
+            row = cur.fetchone()
+            if not row:
+                return False
+            return row["ctr"] >= ctr_threshold
+
+
+# ════════════════════════════════════════════════════════════════
+# TRENDS
+# ════════════════════════════════════════════════════════════════
+
+def save_trend(
+    company_id: int,
+    source: str,
+    category: str,
+    trend_text: str,
+    hashtags: list,
+    sentiment: str = "positive",
+    volume_score: int = 0,
+    relevance_score: float = 0.5
+) -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO trends
+                    (company_id, source, category, trend_text,
+                     hashtags, sentiment, volume_score, relevance_score)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                company_id, source, category, trend_text,
+                json.dumps(hashtags), sentiment, volume_score, relevance_score
+            ))
+        conn.commit()
+
+def get_top_trends(
+    company_id: int,
+    category: str = None,
+    limit: int = 10
+) -> list:
+    """Strategy Agent calls this before generating content."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            query = """
+                SELECT trend_text, hashtags, source,
+                       volume_score, relevance_score
+                FROM trends
+                WHERE (company_id = %s OR company_id IS NULL)
+                  AND scraped_at > NOW() - INTERVAL '24 hours'
+            """
+            params = [company_id]
+            if category:
+                query += " AND category = %s"
+                params.append(category)
+            query += " ORDER BY relevance_score DESC, volume_score DESC LIMIT %s"
+            params.append(limit)
+            cur.execute(query, params)
+            return [dict(r) for r in cur.fetchall()]
+
+
+# ════════════════════════════════════════════════════════════════
+# CAMPAIGN MEMORY
+# ════════════════════════════════════════════════════════════════
+
+def save_campaign_memory(
+    company_id: int,
+    campaign_id: int,
+    what_worked: str,
+    what_failed: str,
+    winning_tone: str,
+    winning_visual: str,
+    top_hashtags: list,
+    market_trends_json: dict,
+    final_ctr: float,
+    attempts_needed: int,
+    recommendations: str,
+    festival_tag: str = None,
+    season: str = None
+) -> None:
+    import datetime
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO campaign_memory
+                    (company_id, campaign_id, festival_tag, season, year,
+                     what_worked, what_failed, winning_tone, winning_visual,
+                     top_hashtags, market_trends_json, final_ctr,
+                     attempts_needed, recommendations)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            """, (
+                company_id, campaign_id, festival_tag, season,
+                datetime.datetime.now().year,
+                what_worked, what_failed, winning_tone, winning_visual,
+                json.dumps(top_hashtags), json.dumps(market_trends_json),
+                final_ctr, attempts_needed, recommendations
+            ))
+        conn.commit()
+
+def get_campaign_memory(
+    company_id: int,
+    festival_tag: str = None
+) -> list:
+    """Strategy Agent reads this for relevant past learnings."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            query = """
+                SELECT * FROM campaign_memory
+                WHERE company_id = %s
+            """
+            params = [company_id]
+            if festival_tag:
+                query += " AND festival_tag = %s"
+                params.append(festival_tag)
+            query += " ORDER BY created_at DESC LIMIT 5"
+            cur.execute(query, params)
+            return [dict(r) for r in cur.fetchall()]
+
+
+# ════════════════════════════════════════════════════════════════
+# CAMPAIGN HISTORY
+# ════════════════════════════════════════════════════════════════
+
+def log_event(
+    campaign_id: int,
+    event_type: str,
+    note: str = "",
+    triggered_by: str = "system",
+    metadata: dict = None
+) -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO campaign_history
+                    (campaign_id, event_type, note, triggered_by, metadata)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (
+                campaign_id, event_type, note, triggered_by,
+                json.dumps(metadata or {})
+            ))
+        conn.commit()
+
+def get_campaign_history(campaign_id: int) -> list:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT event_type, note, triggered_by, metadata, created_at
+                FROM campaign_history
+                WHERE campaign_id = %s
+                ORDER BY created_at ASC
+            """, (campaign_id,))
+            return [dict(r) for r in cur.fetchall()]
+
+
+# ════════════════════════════════════════════════════════════════
+# PROMPT REQUESTS
+# Every manual user prompt logged here
+# ════════════════════════════════════════════════════════════════
+
+def log_prompt_request(
+    company_id: int,
+    user_prompt: str
+) -> int:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO prompt_requests
+                    (company_id, user_prompt, status)
+                VALUES (%s, %s, 'received')
+                RETURNING id
+            """, (company_id, user_prompt))
+            prompt_id = cur.fetchone()["id"]
+        conn.commit()
+    return prompt_id
+
+def update_prompt_request(
+    prompt_id: int,
+    campaign_id: int,
+    parsed_intent: str,
+    status: str = "processing"
+) -> None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE prompt_requests
+                SET campaign_id = %s, parsed_intent = %s,
+                    status = %s, processed_at = NOW()
+                WHERE id = %s
+            """, (campaign_id, parsed_intent, status, prompt_id))
+        conn.commit()
+
+
+# ════════════════════════════════════════════════════════════════
+# COST TRACKING (for UI cost panel)
+# ════════════════════════════════════════════════════════════════
+
+def get_total_cost(campaign_id: int) -> dict:
+    """Returns running totals for the cost tracker panel."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    COUNT(*)            AS api_calls,
+                    SUM(tokens_used)    AS total_tokens,
+                    SUM(cost_usd)       AS total_cost_usd,
+                    SUM(cost_usd) * 84  AS total_cost_inr
+                FROM reasoning_log
+                WHERE campaign_id = %s
+            """, (campaign_id,))
+            row = cur.fetchone()
+            return dict(row) if row else {
+                "api_calls": 0, "total_tokens": 0,
+                "total_cost_usd": 0, "total_cost_inr": 0
+            }
