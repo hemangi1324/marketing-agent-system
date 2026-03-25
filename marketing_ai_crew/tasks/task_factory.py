@@ -203,6 +203,32 @@ Present options. Human team chooses direction.
     )
 
 
+def email_dispatch_task(agent, brief):
+    return Task(
+        description=f"""
+Task: {brief}
+
+You are the email dispatch specialist. Your ONLY job here is to:
+1. Take the provided email content (subject and body)
+2. Send it using the SMTP Email Sender tool to all configured recipients
+3. Report back the exact number of emails sent and any failures
+
+Input you will receive (already approved by risk agent):
+- email_subject: the subject line
+- email_body: the body content
+- recipients: use the recipient list from the system
+
+Use the SMTP Email Sender tool with a JSON input containing:
+  recipients, subject, html_body, text_body, campaign_id
+
+After sending, confirm: how many were sent, how many failed.
+""",
+        expected_output="JSON result from the SMTP Email Sender: sent count, failed count, and list of any failures.",
+        agent=agent,
+        output_file=_out("email_dispatch"),
+    )
+
+
 TASK_MAP = {
     "content":           content_task,
     "social":            social_task,
@@ -214,6 +240,7 @@ TASK_MAP = {
     "product_marketing": product_marketing_task,
     "pr":                pr_task,
     "brand_strategy":    brand_strategy_task,
+    "email_dispatch":    lambda agent, brief: email_dispatch_task(agent, brief),
 }
 
 DEFAULT_BRIEFS = {
@@ -227,6 +254,7 @@ DEFAULT_BRIEFS = {
     "product_marketing": "Launch campaign for Acme Automate 2.0 workflow automation",
     "pr":                "Prepare press materials for our 1000-customer milestone",
     "brand_strategy":    "Research positioning options for SMB-focused SaaS market",
+    "email_dispatch":    "Send the risk-approved email campaign to all subscribers",
 }
 
 
