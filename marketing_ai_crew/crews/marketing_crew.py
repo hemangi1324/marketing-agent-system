@@ -29,7 +29,7 @@ AGENT_META = {
 }
 
 TIER_AGENTS = {
-    1: ["content", "social", "leads", "analytics", "email"],
+    1: ["content", "social", "leads", "analytics", "email", "risk", "analytics"],
     2: ["ads", "community", "product_marketing"],
     3: ["pr", "brand_strategy"],
 }

@@ -198,3 +198,5 @@ def get_all_agents() -> dict:
         "pr":                get_pr_agent(),
         "brand_strategy":    get_brand_strategy_agent(),
     }
+from agents.risk_agent import risk_agent
+from agents.analytics_agent import analytics_agent
