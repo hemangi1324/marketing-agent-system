@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from crewai.tools import tool
 
 
+load_dotenv(override=True)
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
 
 

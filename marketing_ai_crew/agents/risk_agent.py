@@ -7,7 +7,8 @@ from crewai import Agent, Task, Crew
 
 from tools.slack_tool import slack_alert_tool
 
-load_dotenv()
+load_dotenv(override=True)
+
 # ── TODO: swap these 2 lines when M2 finishes db/session.py ─────────────────
 # from db.session import save_risk, save_reasoning
 def save_risk(output_id, scores_dict): pass
@@ -119,15 +120,15 @@ def run_risk_check(content_dict: dict, campaign_id: int, output_id: int = None) 
     if not scores.get("green_light", True):
         print("🚨 Triggering Slack alert...")
 
-        slack_alert_tool.run({
-            "campaign_id": campaign_id,
-            "scores": {
-                "brand_safety": scores.get("brand_safety"),
-                "legal_risk": scores.get("legal_risk"),
-                "cultural_sensitivity": scores.get("cultural_sensitivity"),
-            },
-            "flag_reason": scores.get("flag_reason", "Risk detected")
-        })
+        slack_alert_tool.run(json.dumps({
+        "campaign_id": campaign_id,
+        "scores": {
+        "brand_safety": scores.get("brand_safety"),
+        "legal_risk": scores.get("legal_risk"),
+        "cultural_sensitivity": scores.get("cultural_sensitivity"),
+    },
+    "flag_reason": scores.get("flag_reason", "Risk detected")
+}))
     save_reasoning(agent_name="RiskAgent", thought=scores.get("explanation", ""), campaign_id=campaign_id)
     save_risk(output_id=output_id, scores_dict=scores)
 
