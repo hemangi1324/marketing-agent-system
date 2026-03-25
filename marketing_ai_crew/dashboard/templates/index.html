@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marketing AI Crew</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0a0a0f;
+    --surface:  #111118;
+    --border:   #1e1e2e;
+    --muted:    #2a2a3a;
+    --text:     #e2e2f0;
+    --dim:      #7070a0;
+    --green:    #22c55e;
+    --yellow:   #f59e0b;
+    --red:      #ef4444;
+    --blue:     #60a5fa;
+    --mono:     'IBM Plex Mono', monospace;
+    --sans:     'IBM Plex Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+  /* ── Header ── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 18px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: var(--bg); z-index: 100;
+  }
+  .logo { font-family: var(--mono); font-size: 13px; letter-spacing: 0.12em; color: var(--dim); }
+  .logo span { color: var(--text); font-weight: 600; }
+  .model-badge {
+    font-family: var(--mono); font-size: 11px;
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 5px 12px; border-radius: 4px; color: var(--green);
+  }
+
+  /* ── Layout ── */
+  .layout { display: grid; grid-template-columns: 340px 1fr; gap: 0; height: calc(100vh - 57px); }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 20px 16px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .tier-label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.15em;
+    color: var(--dim); text-transform: uppercase;
+    padding: 14px 8px 6px; border-top: 1px solid var(--border); margin-top: 4px;
+  }
+  .tier-label:first-child { border-top: none; padding-top: 4px; }
+
+  .agent-card {
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 12px 14px; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface);
+  }
+  .agent-card:hover { border-color: var(--muted); background: #15151e; }
+  .agent-card.active { border-color: var(--blue); background: #0d1a2e; }
+
+  .agent-icon { font-size: 20px; flex-shrink: 0; }
+  .agent-info { flex: 1; min-width: 0; }
+  .agent-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .agent-sub  { font-size: 11px; color: var(--dim); font-family: var(--mono); }
+
+  .cov-badge {
+    font-family: var(--mono); font-size: 10px; padding: 2px 7px;
+    border-radius: 3px; font-weight: 600; flex-shrink: 0;
+  }
+  .cov-full    { background: #052e16; color: var(--green); border: 1px solid #166534; }
+  .cov-partial { background: #2d1b00; color: var(--yellow); border: 1px solid #7c4a00; }
+  .cov-human   { background: #2d0707; color: var(--red);    border: 1px solid #7c1313; }
+
+  /* ── Main ── */
+  .main { display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Run Panel ── */
+  .run-panel {
+    border-bottom: 1px solid var(--border);
+    padding: 24px 32px; background: var(--surface);
+  }
+  .selected-agent {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 18px;
+  }
+  .sel-icon { font-size: 28px; }
+  .sel-name { font-size: 20px; font-weight: 700; }
+  .sel-meta { font-family: var(--mono); font-size: 11px; color: var(--dim); margin-top: 2px; }
+
+  .input-row { display: flex; gap: 10px; }
+  textarea {
+    flex: 1; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--sans); font-size: 13px;
+    padding: 10px 14px; border-radius: 6px; resize: none; height: 52px;
+    transition: border-color 0.15s;
+  }
+  textarea:focus { outline: none; border-color: var(--blue); }
+  textarea::placeholder { color: var(--dim); }
+
+  .run-btn {
+    background: var(--blue); color: #000; border: none;
+    font-family: var(--mono); font-size: 12px; font-weight: 600;
+    padding: 0 22px; border-radius: 6px; cursor: pointer;
+    letter-spacing: 0.05em; white-space: nowrap;
+    transition: opacity 0.15s;
+  }
+  .run-btn:hover   { opacity: 0.85; }
+  .run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex; border-bottom: 1px solid var(--border);
+    padding: 0 32px; background: var(--surface);
+  }
+  .tab {
+    font-family: var(--mono); font-size: 12px; color: var(--dim);
+    padding: 12px 16px; cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; letter-spacing: 0.05em;
+    transition: color 0.15s;
+  }
+  .tab:hover  { color: var(--text); }
+  .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+  /* ── Tab Content ── */
+  .tab-content { flex: 1; overflow-y: auto; padding: 24px 32px; }
+  .tab-pane    { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ── Jobs ── */
+  .job-item {
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 14px 16px; margin-bottom: 10px; background: var(--surface);
+  }
+  .job-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .job-agent  { font-weight: 600; font-size: 13px; }
+  .job-status {
+    font-family: var(--mono); font-size: 10px; padding: 2px 8px;
+    border-radius: 3px; font-weight: 600;
+  }
+  .status-queued  { background:#1a1a2e; color:var(--dim); border:1px solid var(--muted); }
+  .status-running { background:#0d1a2e; color:var(--blue); border:1px solid #1e3a5f;
+                    animation: pulse 1.5s infinite; }
+  .status-done    { background:#052e16; color:var(--green); border:1px solid #166534; }
+  .status-error   { background:#2d0707; color:var(--red);   border:1px solid #7c1313; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  .job-brief  { font-size: 12px; color: var(--dim); margin-bottom: 8px; }
+  .job-result {
+    font-family: var(--mono); font-size: 11px; color: var(--text);
+    background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    padding: 12px; white-space: pre-wrap; word-break: break-word;
+    max-height: 300px; overflow-y: auto; margin-top: 8px;
+    display: none;
+  }
+  .job-result.visible { display: block; }
+  .toggle-result {
+    font-family: var(--mono); font-size: 11px; color: var(--blue);
+    background: none; border: none; cursor: pointer; padding: 0;
+  }
+
+  /* ── Outputs ── */
+  .output-item {
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 12px 16px; margin-bottom: 8px; background: var(--surface);
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; transition: border-color 0.15s;
+  }
+  .output-item:hover { border-color: var(--muted); }
+  .output-name { font-family: var(--mono); font-size: 12px; }
+  .output-size { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+  .output-content {
+    font-family: var(--mono); font-size: 11px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    padding: 16px; white-space: pre-wrap; word-break: break-word;
+    margin-top: 8px; max-height: 500px; overflow-y: auto;
+    display: none;
+  }
+  .output-content.visible { display: block; }
+
+  /* ── Empty state ── */
+  .empty { text-align: center; padding: 60px 20px; color: var(--dim); }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-text { font-family: var(--mono); font-size: 13px; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar       { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">MARKETING <span>AI CREW</span></div>
+  <div class="model-badge">⚙ Ollama / {{ llm_model }}</div>
+</header>
+
+<div class="layout">
+
+  <!-- Sidebar: Agent List -->
+  <aside class="sidebar">
+
+    <div class="tier-label">Tier 1 — Fully Automatable</div>
+    {% for key in ['content','social','leads','analytics','email'] %}
+    {% set a = agents[key] %}
+    <div class="agent-card" data-key="{{ key }}" onclick="selectAgent('{{ key }}')">
+      <div class="agent-icon">{{ a.icon }}</div>
+      <div class="agent-info">
+        <div class="agent-name">{{ a.name }}</div>
+        <div class="agent-sub">tier {{ a.tier }}</div>
+      </div>
+      <div class="cov-badge cov-full">Full</div>
+    </div>
+    {% endfor %}
+
+    <div class="tier-label">Tier 2 — Light Human Review</div>
+    {% for key in ['ads','community','product_marketing'] %}
+    {% set a = agents[key] %}
+    <div class="agent-card" data-key="{{ key }}" onclick="selectAgent('{{ key }}')">
+      <div class="agent-icon">{{ a.icon }}</div>
+      <div class="agent-info">
+        <div class="agent-name">{{ a.name }}</div>
+        <div class="agent-sub">tier {{ a.tier }}</div>
+      </div>
+      <div class="cov-badge cov-partial">Partial</div>
+    </div>
+    {% endfor %}
+
+    <div class="tier-label">Tier 3 — Human-Led</div>
+    {% for key in ['pr','brand_strategy'] %}
+    {% set a = agents[key] %}
+    <div class="agent-card" data-key="{{ key }}" onclick="selectAgent('{{ key }}')">
+      <div class="agent-icon">{{ a.icon }}</div>
+      <div class="agent-info">
+        <div class="agent-name">{{ a.name }}</div>
+        <div class="agent-sub">tier {{ a.tier }}</div>
+      </div>
+      <div class="cov-badge cov-human">Human</div>
+    </div>
+    {% endfor %}
+
+  </aside>
+
+  <!-- Main Panel -->
+  <div class="main">
+
+    <!-- Run Panel -->
+    <div class="run-panel">
+      <div class="selected-agent">
+        <div class="sel-icon" id="selIcon">✍️</div>
+        <div>
+          <div class="sel-name" id="selName">Content & Branding</div>
+          <div class="sel-meta" id="selMeta">tier 1 · full coverage · skill</div>
+        </div>
+      </div>
+      <div class="input-row">
+        <textarea id="briefInput" placeholder="Task brief (leave blank for default)..."></textarea>
+        <button class="run-btn" id="runBtn" onclick="runAgent()">▶ RUN</button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('jobs')">Jobs</div>
+      <div class="tab" onclick="switchTab('outputs')">Outputs</div>
+    </div>
+
+    <!-- Tab: Jobs -->
+    <div class="tab-content">
+      <div class="tab-pane active" id="tab-jobs">
+        <div id="jobsList">
+          <div class="empty">
+            <div class="empty-icon">🤖</div>
+            <div class="empty-text">Select an agent and click RUN to start</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab: Outputs -->
+      <div class="tab-pane" id="tab-outputs">
+        <div id="outputsList">
+          <div class="empty">
+            <div class="empty-icon">📁</div>
+            <div class="empty-text">Output files will appear here after agents run</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const AGENTS = {{ agents | tojson }};
+let selectedAgent = 'content';
+let activeJobIds   = new Set();
+let pollInterval   = null;
+
+const DEFAULTS = {
+  content:           "Write content for our Acme Automate 2.0 feature launch",
+  social:            "Build next week's social media calendar",
+  leads:             "Find 3 prospects in fintech or e-commerce",
+  analytics:         "Generate weekly performance report for last 7 days",
+  email:             "Create onboarding email sequence for new free trial users",
+  ads:               "Review campaign performance and optimise budget",
+  community:         "Find partnership opportunities with complementary SaaS tools",
+  product_marketing: "Launch campaign for Acme Automate 2.0",
+  pr:                "Prepare press materials for our 1000-customer milestone",
+  brand_strategy:    "Research positioning options for SMB-focused SaaS market",
+};
+
+function selectAgent(key) {
+  selectedAgent = key;
+  document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('active'));
+  document.querySelector(`[data-key="${key}"]`).classList.add('active');
+
+  const a = AGENTS[key];
+  document.getElementById('selIcon').textContent = a.icon;
+  document.getElementById('selName').textContent = a.name;
+  document.getElementById('selMeta').textContent =
+    `tier ${a.tier} · ${a.coverage.toLowerCase()} coverage`;
+  document.getElementById('briefInput').placeholder =
+    `Default: "${DEFAULTS[key]}"`;
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['jobs','outputs'][i] === name);
+  });
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  if (name === 'outputs') loadOutputs();
+}
+
+async function runAgent() {
+  const brief = document.getElementById('briefInput').value.trim();
+  const btn   = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Starting...';
+
+  try {
+    const r = await fetch('/api/run', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({agent: selectedAgent, brief})
+    });
+    const data = await r.json();
+    if (data.job_id) {
+      activeJobIds.add(data.job_id);
+      addJobCard(data.job_id, selectedAgent, brief || DEFAULTS[selectedAgent]);
+      if (!pollInterval) pollInterval = setInterval(pollJobs, 2500);
+    }
+  } catch(e) { alert('Error: ' + e.message); }
+
+  btn.disabled = false;
+  btn.textContent = '▶ RUN';
+}
+
+function addJobCard(jid, agentKey, brief) {
+  const a    = AGENTS[agentKey];
+  const list = document.getElementById('jobsList');
+  const empty = list.querySelector('.empty');
+  if (empty) empty.remove();
+
+  const div = document.createElement('div');
+  div.className = 'job-item';
+  div.id = `job-${jid}`;
+  div.innerHTML = `
+    <div class="job-header">
+      <span>${a.icon}</span>
+      <span class="job-agent">${a.name}</span>
+      <span class="job-status status-queued" id="status-${jid}">QUEUED</span>
+    </div>
+    <div class="job-brief">${brief.substring(0,120)}${brief.length>120?'...':''}</div>
+    <button class="toggle-result" onclick="toggleResult('${jid}')" style="display:none" id="toggle-${jid}">
+      Show output ▼
+    </button>
+    <div class="job-result" id="result-${jid}"></div>
+  `;
+  list.insertBefore(div, list.firstChild);
+}
+
+function toggleResult(jid) {
+  const el  = document.getElementById(`result-${jid}`);
+  const btn = document.getElementById(`toggle-${jid}`);
+  const vis = el.classList.toggle('visible');
+  btn.textContent = vis ? 'Hide output ▲' : 'Show output ▼';
+}
+
+async function pollJobs() {
+  if (activeJobIds.size === 0) { clearInterval(pollInterval); pollInterval = null; return; }
+  for (const jid of [...activeJobIds]) {
+    try {
+      const r = await fetch(`/api/job/${jid}`);
+      const j = await r.json();
+      updateJobCard(j);
+      if (j.status === 'done' || j.status === 'error') activeJobIds.delete(jid);
+    } catch(e) {}
+  }
+}
+
+function updateJobCard(j) {
+  const statusEl = document.getElementById(`status-${j.id}`);
+  if (!statusEl) return;
+  const labels = {queued:'QUEUED', running:'● RUNNING', done:'✓ DONE', error:'✗ ERROR'};
+  statusEl.className = `job-status status-${j.status}`;
+  statusEl.textContent = labels[j.status] || j.status.toUpperCase();
+
+  if ((j.status === 'done' || j.status === 'error') && j.result) {
+    const resultEl = document.getElementById(`result-${j.id}`);
+    const toggleEl = document.getElementById(`toggle-${j.id}`);
+    resultEl.textContent = j.result;
+    toggleEl.style.display = 'block';
+  }
+}
+
+async function loadOutputs() {
+  const r     = await fetch('/api/outputs');
+  const files = await r.json();
+  const list  = document.getElementById('outputsList');
+  list.innerHTML = '';
+  if (!files.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">📁</div><div class="empty-text">No output files yet</div></div>';
+    return;
+  }
+  files.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'output-item';
+    div.innerHTML = `
+      <div>
+        <div class="output-name">${f.name}</div>
+        <div class="output-size">${(f.size/1024).toFixed(1)} KB · ${f.modified.substring(0,16).replace('T',' ')}</div>
+      </div>
+      <span style="color:var(--dim);font-size:12px">click to view</span>
+    `;
+    const content = document.createElement('div');
+    content.className = 'output-content';
+    content.id = `out-${f.name}`;
+    div.onclick = async () => {
+      const vis = content.classList.toggle('visible');
+      if (vis && !content.textContent) {
+        const r2 = await fetch(`/api/output/${f.name}`);
+        const d  = await r2.json();
+        content.textContent = d.content;
+      }
+    };
+    list.appendChild(div);
+    list.appendChild(content);
+  });
+}
+
+// Init
+selectAgent('content');
+</script>
+</body>
+</html>
