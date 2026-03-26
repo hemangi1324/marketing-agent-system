@@ -163,6 +163,7 @@ class CampaignResponse(BaseModel):
     industry_avg_ctr:       float
     status:                 str
     heal_attempts:          int
+    festival_tag:           Optional[str]           # NEW
     created_at:             datetime
     updated_at:             datetime
 
@@ -244,16 +245,21 @@ class GeneratedAssetsResponse(BaseModel):
     email_preheader:            Optional[str]
     email_body:                 Optional[str]
     email_cta:                  Optional[str]
+    email_subject_variants:     Optional[List[str]]  # NEW
     instagram_caption:          Optional[str]
     instagram_hashtags:         List[str]
     instagram_visual_direction: Optional[str]
     linkedin_headline:          Optional[str]
     linkedin_body:              Optional[str]
     linkedin_cta:               Optional[str]
+    twitter_post:               Optional[str]        # NEW
     whatsapp_message:           Optional[str]
     send_time_recommendation:   Optional[str]
     chosen_discount_pct:        int
     agent_reasoning:            Optional[str]
+    image_url:                  Optional[str]        # NEW
+    image_prompt:               Optional[str]        # NEW
+    image_model:                Optional[str]        # NEW
     created_at:                 datetime
 
 class RiskAssessmentResponse(BaseModel):

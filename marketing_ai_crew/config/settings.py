@@ -43,6 +43,6 @@ def get_llm():
 AGENT_DEFAULTS = {
     "verbose": True,
     "allow_delegation": False,
-    "max_iter": 3,
-    "max_retry_limit": 2,
+    "max_iter": 6,          # Raised from 3 — prevents premature fallback LLM call on complex tasks
+    "max_retry_limit": 3,  # Raised from 2 — handles transient 503 API errors
 }

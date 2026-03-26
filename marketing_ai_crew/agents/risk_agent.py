@@ -62,7 +62,8 @@ Your job:
 2. Apply these rules:
    - All scores >= 7  → green_light = true, no alert needed
    - Any score 5 or 6 → green_light = true, but note a warning in explanation
-   - Any score < 5    → green_light = false, you MUST call the Send Slack Risk Alert tool
+   - Any score < 3   → green_light = false, you MUST call the Send Slack Risk Alert tool
+   
 
 3. If green_light is false, call the Send Slack Risk Alert tool with this JSON:
    {{"campaign_id": {campaign_id}, "scores": {{"brand_safety": <score>, "legal_risk": <score>, "cultural_sensitivity": <score>}}, "flag_reason": "<one line reason>"}}

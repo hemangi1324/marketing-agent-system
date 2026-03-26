@@ -20,10 +20,10 @@ Data sources used:
 
 Run: python seed_nykaa.py
 """
-import os
 import psycopg2
 import json
-from datetime import datetime, timedelta
+import datetime
+from datetime import datetime
 import os
 from dotenv import load_dotenv
 
@@ -31,10 +31,10 @@ load_dotenv()  # This loads the .env file from the current working directory
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:password@localhost:5432/marketing_db"
-)
+# DATABASE_URL = os.getenv(
+#     "DATABASE_URL",
+#     "postgresql://postgres:password@localhost:5432/marketing_db"
+# )
 
 def seed():
     conn = psycopg2.connect(DATABASE_URL)
@@ -131,6 +131,24 @@ def seed():
              interests, buying_behaviour, platform_preference)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """, s)
+    # ================================================================
+    # CUSTOMERS — test emails for demo
+    # ================================================================
+    customers = [
+        ('s14905041@gmail.com', 'Shravani', 'Sawant', 19, 'female', 'Mumbai', 'Tier 1',
+         '["skincare","makeup"]', '{"impulse":true,"avg_order":2500}', '["instagram","youtube","email"]', 15000, datetime.now(), '[1]'),
+        ('hemangip1324@gmail.com', 'Hemangi', 'Patil', 24, 'female', 'Delhi', 'Tier 1',
+         '["haircare","skincare"]', '{"impulse":false,"avg_order":4000}', '["instagram","whatsapp","email"]', 22000, datetime.now(), '[1,2]'),
+        ('d24011168@gmail.com', 'Harish', 'Satav', 31, 'male', 'Bangalore', 'Tier 1',
+         '["premium skincare","fragrance"]', '{"impulse":false,"avg_order":6500}', '["email","linkedin"]', 35000, datetime.now(), '[2]'),
+    ]
+    for cust in customers:
+        cur.execute("""
+            INSERT INTO customers (email, first_name, last_name, age, gender, location, tier,
+                                   interests, buying_behaviour, platform_preference,
+                                   lifetime_value, last_active, segment_ids)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s::jsonb, %s, %s, %s::jsonb)
+        """, cust)
 
     # ================================================================
     # FESTIVAL CALENDAR

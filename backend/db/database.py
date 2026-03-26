@@ -18,6 +18,8 @@ import json
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Optional
+import subprocess
+import os
 
 from backend.config import DATABASE_URL
 
@@ -153,11 +155,11 @@ def update_company(company_id: int, **fields) -> None:
 def create_brand_profile(
     company_id: int,
     brand_name: str,
-    tone_of_voice: str,           # user types this
-    power_words: str,             # user types this — "glow, luxury, limited"
-    avoid_phrases: str,           # user types this — "guaranteed, cheapest"
-    preferred_channels: str,      # user selects checkboxes
-    competitors_avoid: str        # user types competitor names
+    tone_of_voice: str,
+    power_words: str,
+    avoid_phrases: str,
+    preferred_channels: str,
+    competitors_avoid: str
 ) -> int:
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -211,9 +213,9 @@ def create_audience_segment(
     age_range: str,
     gender: str,
     location_tier: str,
-    interests: str,               # user types: "skincare, K-beauty, makeup tutorials"
-    buying_behaviour: str,        # user types: "impulse buyer, responds to flash sales"
-    platform_preference: str      # user selects: "instagram, youtube"
+    interests: str,
+    buying_behaviour: str,
+    platform_preference: str
 ) -> int:
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -256,15 +258,15 @@ def get_audience_segment(segment_id: int) -> dict:
 
 def create_campaign_offer(
     campaign_id: int,
-    min_discount_pct: int,        # user enters — can set min=max to lock
-    max_discount_pct: int,        # user enters
-    promo_code: str,              # user enters — e.g. "PINK60"
-    offer_end_datetime: str,      # user picks from date picker
-    eligible_categories: str,     # user types — "skincare, lipsticks"
-    excluded_items: str,          # user types — "luxury brands"
+    min_discount_pct: int,
+    max_discount_pct: int,
+    promo_code: str,
+    offer_end_datetime: str,
+    eligible_categories: str,
+    excluded_items: str,
     free_shipping: bool,
     min_order_value_inr: int,
-    approved_by: str              # user enters their name
+    approved_by: str
 ) -> int:
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -545,21 +547,35 @@ def log_reasoning(
     cost_usd: float = 0.0,
     model_used: str = "gemini-2.0-flash",
     duration_ms: int = 0,
-    attempt_number: int = 1
+    attempt_number: int = 1,
+    sequence_num: Optional[int] = None
 ) -> int:
+    # If sequence_num not provided, compute it
+    if sequence_num is None:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT COALESCE(MAX(sequence_num), 0) + 1 AS next_seq
+                    FROM reasoning_log
+                    WHERE campaign_id = %s AND attempt_number = %s
+                """, (campaign_id, attempt_number))
+                row = cur.fetchone()
+                sequence_num = row["next_seq"] if row else 1
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO reasoning_log
                     (campaign_id, attempt_number, agent_name, status,
                      input_summary, output, reasoning_summary,
-                     tokens_used, cost_usd, model_used, duration_ms)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                     tokens_used, cost_usd, model_used, duration_ms,
+                     sequence_num)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 RETURNING id
             """, (
                 campaign_id, attempt_number, agent_name, status,
                 input_summary, output, reasoning_summary,
-                tokens_used, cost_usd, model_used, duration_ms
+                tokens_used, cost_usd, model_used, duration_ms,
+                sequence_num
             ))
             log_id = cur.fetchone()["id"]
         conn.commit()
@@ -571,10 +587,11 @@ def get_reasoning_since(campaign_id: int, since_id: int = 0) -> list:
         with conn.cursor() as cur:
             cur.execute("""
                 SELECT id, agent_name, reasoning_summary, status,
-                       cost_usd, model_used, duration_ms, created_at
+                       cost_usd, model_used, duration_ms, created_at,
+                       sequence_num
                 FROM reasoning_log
                 WHERE campaign_id = %s AND id > %s
-                ORDER BY id ASC
+                ORDER BY sequence_num ASC
                 LIMIT 50
             """, (campaign_id, since_id))
             return [dict(r) for r in cur.fetchall()]
@@ -593,7 +610,7 @@ def get_previous_attempt_reasoning(campaign_id: int, attempt_number: int) -> lis
                 WHERE campaign_id = %s
                   AND attempt_number = %s
                   AND status = 'completed'
-                ORDER BY id ASC
+                ORDER BY sequence_num ASC
             """, (campaign_id, attempt_number - 1))
             return [dict(r) for r in cur.fetchall()]
 
@@ -605,22 +622,27 @@ def get_previous_attempt_reasoning(campaign_id: int, attempt_number: int) -> lis
 def save_generated_assets(
     campaign_id: int,
     attempt_number: int,
-    email_subject: str,
-    email_preheader: str,
-    email_body: str,
-    email_cta: str,
-    instagram_caption: str,
-    instagram_hashtags: list,
-    instagram_visual_direction: str,
-    linkedin_headline: str,
-    linkedin_body: str,
-    linkedin_cta: str,
-    whatsapp_message: str,
-    send_time_recommendation: str,
-    chosen_discount_pct: int,
-    agent_reasoning: str,
-    strategy_json: dict,
-    trending_hooks_used: list
+    email_subject: str = None,
+    email_preheader: str = None,
+    email_body: str = None,
+    email_cta: str = None,
+    email_subject_variants: list = None,
+    instagram_caption: str = None,
+    instagram_hashtags: list = None,
+    instagram_visual_direction: str = None,
+    linkedin_headline: str = None,
+    linkedin_body: str = None,
+    linkedin_cta: str = None,
+    twitter_post: str = None,
+    whatsapp_message: str = None,
+    send_time_recommendation: str = None,
+    chosen_discount_pct: int = 0,
+    agent_reasoning: str = None,
+    strategy_json: dict = None,
+    trending_hooks_used: list = None,
+    image_url: str = None,
+    image_prompt: str = None,
+    image_model: str = "dall-e-3"
 ) -> int:
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -628,25 +650,30 @@ def save_generated_assets(
                 INSERT INTO generated_assets
                     (campaign_id, attempt_number,
                      email_subject, email_preheader, email_body, email_cta,
+                     email_subject_variants,
                      instagram_caption, instagram_hashtags, instagram_visual_direction,
                      linkedin_headline, linkedin_body, linkedin_cta,
+                     twitter_post,
                      whatsapp_message, send_time_recommendation,
                      chosen_discount_pct, agent_reasoning,
-                     strategy_json, trending_hooks_used)
-                VALUES
-                    (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                     strategy_json, trending_hooks_used,
+                     image_url, image_prompt, image_model)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 RETURNING id
             """, (
                 campaign_id, attempt_number,
                 email_subject, email_preheader, email_body, email_cta,
+                json.dumps(email_subject_variants) if email_subject_variants else None,
                 instagram_caption,
-                json.dumps(instagram_hashtags),
+                json.dumps(instagram_hashtags) if instagram_hashtags else None,
                 instagram_visual_direction,
                 linkedin_headline, linkedin_body, linkedin_cta,
+                twitter_post,
                 whatsapp_message, send_time_recommendation,
                 chosen_discount_pct, agent_reasoning,
-                json.dumps(strategy_json),
-                json.dumps(trending_hooks_used)
+                json.dumps(strategy_json) if strategy_json else None,
+                json.dumps(trending_hooks_used) if trending_hooks_used else None,
+                image_url, image_prompt, image_model
             ))
             asset_id = cur.fetchone()["id"]
         conn.commit()
@@ -724,7 +751,6 @@ def create_pending_approval(
     asset_id: int,
     risk_id: int
 ) -> int:
-    from datetime import timedelta
     from backend.config import APPROVAL_EXPIRY_HOURS
     with get_conn() as conn:
         with conn.cursor() as cur:
@@ -1086,3 +1112,209 @@ def get_total_cost(campaign_id: int) -> dict:
                 "api_calls": 0, "total_tokens": 0,
                 "total_cost_usd": 0, "total_cost_inr": 0
             }
+
+
+# ════════════════════════════════════════════════════════════════
+# NEW HELPER FUNCTIONS (Required by team)
+# ════════════════════════════════════════════════════════════════
+
+def get_current_attempt(campaign_id: int) -> int:
+    """Return the current heal_attempts for a campaign."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT heal_attempts FROM campaigns WHERE id = %s", (campaign_id,))
+            row = cur.fetchone()
+            return row["heal_attempts"] if row else 1
+
+def save_reasoning(agent: str, thought: str, campaign_id: int):
+    """Wrapper around log_reasoning for the team's interface."""
+    attempt = get_current_attempt(campaign_id)
+    return log_reasoning(
+        campaign_id=campaign_id,
+        attempt_number=attempt,
+        agent_name=agent,
+        status="completed",
+        reasoning_summary=thought,
+        output=thought,
+        tokens_used=0,
+        cost_usd=0.0,
+        model_used="gemini-2.0-flash",
+        duration_ms=0
+    )
+
+def get_trends(limit: int = 10) -> list:
+    """Return a list of trend texts from the last 12 hours, sorted by relevance."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT trend_text FROM trends
+                WHERE scraped_at > NOW() - INTERVAL '12 hours'
+                ORDER BY relevance_score DESC
+                LIMIT %s
+            """, (limit,))
+            return [row["trend_text"] for row in cur.fetchall()]
+
+def get_memory(festival_tag: str, year: int) -> dict:
+    """Return the most recent memory for given festival_tag and year."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT * FROM campaign_memory
+                WHERE festival_tag = %s AND year = %s
+                ORDER BY created_at DESC
+                LIMIT 1
+            """, (festival_tag, year))
+            row = cur.fetchone()
+            return dict(row) if row else {}
+
+def save_memory(campaign_id: int, festival_tag: str, mortem: dict):
+    """Store a campaign memory entry from the analytics agent."""
+    return save_campaign_memory(
+        company_id=1,  # Nykaa (adjust if multiple companies)
+        campaign_id=campaign_id,
+        festival_tag=festival_tag,
+        season=mortem.get("season"),
+        what_worked=mortem.get("what_worked", ""),
+        what_failed=mortem.get("what_failed", ""),
+        winning_tone=mortem.get("winning_tone", ""),
+        winning_visual=mortem.get("winning_visual", ""),
+        top_hashtags=mortem.get("top_hashtags", []),
+        market_trends_json=mortem.get("market_trends_json", {}),
+        final_ctr=mortem.get("final_ctr", 0.0),
+        attempts_needed=mortem.get("attempts_needed", 1),
+        recommendations=mortem.get("recommendations", "")
+    )
+
+def save_output(campaign_id: int, attempt: int, content_dict: dict):
+    """Wrapper around save_generated_assets for the team's interface."""
+    return save_generated_assets(
+        campaign_id=campaign_id,
+        attempt_number=attempt,
+        email_subject=content_dict.get("email_subject"),
+        email_preheader=content_dict.get("email_preheader"),
+        email_body=content_dict.get("email_body"),
+        email_cta=content_dict.get("email_cta"),
+        email_subject_variants=content_dict.get("email_subject_variants"),
+        instagram_caption=content_dict.get("instagram_caption"),
+        instagram_hashtags=content_dict.get("instagram_hashtags"),
+        instagram_visual_direction=content_dict.get("instagram_visual_direction"),
+        linkedin_headline=content_dict.get("linkedin_headline"),
+        linkedin_body=content_dict.get("linkedin_body"),
+        linkedin_cta=content_dict.get("linkedin_cta"),
+        twitter_post=content_dict.get("twitter_post"),
+        whatsapp_message=content_dict.get("whatsapp_message"),
+        send_time_recommendation=content_dict.get("send_time_recommendation"),
+        chosen_discount_pct=content_dict.get("chosen_discount_pct", 0),
+        agent_reasoning=content_dict.get("agent_reasoning"),
+        strategy_json=content_dict.get("strategy_json"),
+        trending_hooks_used=content_dict.get("trending_hooks_used"),
+        image_url=content_dict.get("image_url"),
+        image_prompt=content_dict.get("image_prompt"),
+        image_model=content_dict.get("image_model", "dall-e-3")
+    )
+
+def get_campaign_id_from_asset(asset_id: int) -> int:
+    """Helper to retrieve campaign_id from generated_assets."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT campaign_id FROM generated_assets WHERE id = %s", (asset_id,))
+            row = cur.fetchone()
+            return row["campaign_id"] if row else None
+
+def save_risk(output_id: int, scores_dict: dict):
+    """Wrapper around save_risk_assessment for the team's interface."""
+    campaign_id = get_campaign_id_from_asset(output_id)
+    if not campaign_id:
+        raise ValueError(f"Asset {output_id} not found")
+    return save_risk_assessment(
+        asset_id=output_id,
+        campaign_id=campaign_id,
+        brand_safety_score=scores_dict.get("brand_safety", 0),
+        brand_safety_note=scores_dict.get("flag_reason", ""),
+        legal_risk_score=scores_dict.get("legal_risk", 0),
+        legal_risk_note="",
+        cultural_sensitivity_score=scores_dict.get("cultural_sensitivity", 0),
+        cultural_sensitivity_note="",
+        overall_recommendation="APPROVE" if scores_dict.get("green_light") else "REJECT",
+        green_light=scores_dict.get("green_light", False),
+        decision_reason=scores_dict.get("explanation", "")
+    )
+
+def save_post_performance(post_id: int, perf_dict: dict):
+    """Wrapper around add_performance_snapshot for the team's interface."""
+    # Get campaign_id from published_posts
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SELECT campaign_id FROM published_posts WHERE id = %s", (post_id,))
+            row = cur.fetchone()
+            if not row:
+                return None
+            campaign_id = row["campaign_id"]
+    attempt = get_current_attempt(campaign_id)
+    return add_performance_snapshot(
+        campaign_id=campaign_id,
+        ctr=perf_dict.get("new_ctr", 0.0),
+        open_rate=perf_dict.get("new_open_rate", 0.0),
+        roas=0.0,
+        click_count=perf_dict.get("clicks", 0),
+        attempt_number=attempt,
+        phase="healed" if perf_dict.get("healed") else "attempt",
+        healed=perf_dict.get("healed", False),
+        note="",
+        post_id=post_id
+    )
+
+def get_post_performance(campaign_id: int) -> dict:
+    """Return the latest performance snapshot for a campaign."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT * FROM performance_snapshots
+                WHERE campaign_id = %s
+                ORDER BY recorded_at DESC
+                LIMIT 1
+            """, (campaign_id,))
+            row = cur.fetchone()
+            return dict(row) if row else {}
+
+def log_api_cost(campaign_id: int, agent: str, tokens: int, cost: float):
+    """Log token usage and cost for a specific agent call."""
+    attempt = get_current_attempt(campaign_id)
+    return log_reasoning(
+        campaign_id=campaign_id,
+        attempt_number=attempt,
+        agent_name=agent,
+        status="completed",
+        reasoning_summary=f"API call: {tokens} tokens, ${cost:.4f}",
+        output="",
+        tokens_used=tokens,
+        cost_usd=cost,
+        model_used="unknown",
+        duration_ms=0
+    )
+
+def reset_demo():
+    """Reset the database to initial seed state (for exhibition)."""
+    # Determine project root
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(current_dir)  # one level up from backend/db/
+    seed_script = os.path.join(project_root, "data", "seed_nykaa.py")
+    # Truncate all tables
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("SET session_replication_role = replica;")
+            tables = [
+                "campaign_history", "prompt_requests", "performance_snapshots",
+                "published_posts", "pending_approvals", "risk_assessments",
+                "generated_assets", "reasoning_log", "seasonal_campaigns",
+                "festival_calendar", "scrape_logs", "trends", "campaign_offers",
+                "campaigns", "audience_segments", "brand_profiles", "campaign_memory",
+                "companies", "customers"
+            ]
+            for t in tables:
+                cur.execute(f"TRUNCATE TABLE {t} RESTART IDENTITY CASCADE;")
+            cur.execute("SET session_replication_role = DEFAULT;")
+        conn.commit()
+    # Re‑run the seed script
+    subprocess.run(["python", seed_script], check=True, cwd=project_root)
+    print("[DB] Demo reset complete.")

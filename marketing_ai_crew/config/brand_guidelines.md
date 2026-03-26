@@ -17,7 +17,7 @@ Founded 2022. HQ: San Francisco. 50 employees.
 - **Always**: Clear, warm, action-oriented, outcomes-focused
 
 ## Key Messages
-1. "Save 10 hours a week — guaranteed"
+1. "Save 10 hours a week"
 2. "Enterprise power, small business price"
 3. "Your team of one just got a lot bigger"
 
