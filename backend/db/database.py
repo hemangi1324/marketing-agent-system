@@ -634,6 +634,7 @@ def save_generated_assets(
     linkedin_body: str = None,
     linkedin_cta: str = None,
     twitter_post: str = None,
+    telegram_message: str = None,          # NEW
     whatsapp_message: str = None,
     send_time_recommendation: str = None,
     chosen_discount_pct: int = 0,
@@ -653,7 +654,7 @@ def save_generated_assets(
                      email_subject_variants,
                      instagram_caption, instagram_hashtags, instagram_visual_direction,
                      linkedin_headline, linkedin_body, linkedin_cta,
-                     twitter_post,
+                     twitter_post, telegram_message,
                      whatsapp_message, send_time_recommendation,
                      chosen_discount_pct, agent_reasoning,
                      strategy_json, trending_hooks_used,
@@ -668,7 +669,7 @@ def save_generated_assets(
                 json.dumps(instagram_hashtags) if instagram_hashtags else None,
                 instagram_visual_direction,
                 linkedin_headline, linkedin_body, linkedin_cta,
-                twitter_post,
+                twitter_post, telegram_message,
                 whatsapp_message, send_time_recommendation,
                 chosen_discount_pct, agent_reasoning,
                 json.dumps(strategy_json) if strategy_json else None,
@@ -1292,6 +1293,73 @@ def log_api_cost(campaign_id: int, agent: str, tokens: int, cost: float):
         model_used="unknown",
         duration_ms=0
     )
+
+
+# ================================================================
+# NEW HELPER FUNCTIONS for the API fixes
+# ================================================================
+
+def get_pending_approval_full(campaign_id: int) -> dict:
+    """
+    Return the latest pending approval for a campaign,
+    including generated assets and risk scores, with JSON fields parsed.
+    """
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT pa.id AS approval_id, pa.status,
+                       ga.*, ra.*
+                FROM pending_approvals pa
+                JOIN generated_assets ga ON pa.asset_id = ga.id
+                JOIN risk_assessments ra ON pa.risk_id = ra.id
+                WHERE pa.campaign_id = %s AND pa.status = 'pending'
+                ORDER BY pa.created_at DESC LIMIT 1
+            """, (campaign_id,))
+            row = cur.fetchone()
+            if not row:
+                return {}
+            result = dict(row)
+            # Convert JSON fields that might be stored as strings
+            json_fields = ["instagram_hashtags", "email_subject_variants",
+                           "trending_hooks_used", "human_edits", "market_trends_json"]
+            for field in json_fields:
+                if field in result and result[field]:
+                    if isinstance(result[field], str):
+                        try:
+                            result[field] = json.loads(result[field])
+                        except:
+                            pass
+            return result
+
+
+
+def get_brand_keywords(company_id: int) -> list:
+    """
+    Return a list of power words from the brand profile for ML relevance scoring.
+    """
+    profile = get_brand_profile(company_id)
+    if profile and profile.get("power_words"):
+        # assume power_words are stored as comma-separated string
+        return [w.strip() for w in profile["power_words"].split(",")]
+    return []
+
+
+
+
+def is_campaign_terminal(campaign_id: int) -> bool:
+    """
+    Check if the campaign has reached a terminal state (healed, failed, published).
+    Used to stop SSE streaming.
+    """
+    campaign = get_campaign(campaign_id)
+    if campaign:
+        terminal_statuses = ["healed", "failed", "published"]
+        return campaign.get("status") in terminal_statuses
+    return False
+
+
+
+
 
 def reset_demo():
     """Reset the database to initial seed state (for exhibition)."""
