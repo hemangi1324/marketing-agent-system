@@ -1,12 +1,12 @@
 """
 agents/all_agents.py
-All 10 marketing agents — mapped exactly to the image.
+All marketing agents — mapped exactly to the image.
 Tier 1: Fully automatable | Tier 2: Partial | Tier 3: Human-led
 """
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from crewai import Agent,Crew,Task,LLM
+from crewai import Agent, Crew, Task, LLM
 from config.settings import get_llm, AGENT_DEFAULTS
 from tools.search_tool import DuckDuckGoSearchTool
 from tools.file_tool import BrandGuidelinesTool, OutputSaverTool
@@ -17,7 +17,14 @@ from tools.mock_ads_tool import AdsGetPerformanceTool, AdsPauseCampaignTool, Ads
 from tools.mock_analytics_tool import AnalyticsPullMetricsTool, AnalyticsTrendsTool
 from dotenv import load_dotenv
 
+# ── Import specialised agents defined in their own modules ─────────────────────
+from agents.risk_agent import risk_agent
+from agents.analytics_agent import analytics_agent
+from agents.email_dispatch_agent import get_email_dispatch_agent
+from agents.strategy_agent import get_strategy_agent
+
 load_dotenv()
+
 
 def _agent(role, goal, backstory, tools):
     return Agent(
@@ -187,16 +194,16 @@ def get_brand_strategy_agent():
 
 def get_all_agents() -> dict:
     return {
+        "strategy":          get_strategy_agent(),
+        "brand_strategy":    get_brand_strategy_agent(),
         "content":           get_content_agent(),
         "social":            get_social_agent(),
-        "leads":             get_lead_gen_agent(),
+        # "leads":             get_lead_gen_agent(),
         "analytics":         get_analytics_agent(),
-        "email":             get_email_campaign_agent(),
+        "risk":              risk_agent(),
+        "email_dispatch":    get_email_dispatch_agent(),
         "ads":               get_campaigns_ads_agent(),
-        "community":         get_community_agent(),
-        "product_marketing": get_product_marketing_agent(),
-        "pr":                get_pr_agent(),
-        "brand_strategy":    get_brand_strategy_agent(),
+        # "community":         get_community_agent(),
+        # "product_marketing": get_product_marketing_agent(),
+        # "pr":                get_pr_agent(),
     }
-from agents.risk_agent import risk_agent
-from agents.analytics_agent import analytics_agent

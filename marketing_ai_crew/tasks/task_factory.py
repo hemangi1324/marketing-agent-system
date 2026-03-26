@@ -1,7 +1,9 @@
 """
 tasks/task_factory.py
 One task per agent. Each task has a clear description and expected output.
-Tasks are intentionally short for local LLMs (fewer tokens = faster + more reliable).
+Tasks accept an optional `context` string (from SharedState.to_context_string())
+which is prepended to the task description when provided — enabling context-aware
+execution without changing the existing API.
 """
 import os
 from datetime import datetime
@@ -13,6 +15,29 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 def _out(prefix):
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     return f"{prefix}_{ts}.md"
+
+def _with_context(description: str, context: str = None) -> str:
+    """Prepend shared state context to a task description if provided."""
+    if not context:
+        return description
+    return f"{context}\n\n{description}"
+
+
+def strategy_task(agent, brief: str, context: str = None):
+    return Task(
+        description=_with_context(f"""
+Read brand guidelines. Then define the campaign strategy for this brief: {brief}
+
+Output a JSON with:
+  campaign_theme, tone, key_messages (list), platform_priorities (dict),
+  audience_insight, do_not_use (list)
+
+Return ONLY valid JSON, no markdown.
+""", context),
+        expected_output="Valid JSON with campaign strategy fields.",
+        agent=agent,
+        output_file=_out("strategy"),
+    )
 
 
 def content_task(agent, brief):

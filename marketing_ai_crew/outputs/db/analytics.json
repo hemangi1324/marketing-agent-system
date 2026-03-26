@@ -1,0 +1,15 @@
+{
+  "200": {
+    "healed": false,
+    "new_ctr": 0.8,
+    "new_open_rate": 22.0,
+    "improved_from_last": true,
+    "post_mortem": {
+      "what_worked": "The significant increase in Open Rate from 15.0% to 22.0% suggests effective optimization of the subject line and/or preview text, successfully capturing user attention amidst the Diwali festive season. This led to a positive, albeit insufficient, increase in CTR from 0.4% to 0.8%.",
+      "what_failed": "Despite improving the Open Rate and CTR, the campaign still falls short of the 1.0% CTR healing target. The conversion rate from open to click remains insufficient, indicating that the content, offer, or Call-to-Action (CTA) within the email did not compel enough recipients to click through after opening.",
+      "market_context": "Operating within the highly competitive Diwali festive period, consumers are experiencing an influx of promotional messages and offers from numerous brands. While the campaign managed to improve initial engagement, the overall value proposition or offer might not be strong enough to differentiate itself and drive clicks above the 1% threshold in this saturated environment.",
+      "recommendation": "Optimize the in-email content by A/B testing clearer, more prominent Calls-to-Action (CTAs) and enhancing the value proposition (e.g., stronger discount, exclusive offer, clearer benefits) to encourage more openers to click through."
+    },
+    "_updated_at": "2026-03-26T23:53:02.778558"
+  }
+}

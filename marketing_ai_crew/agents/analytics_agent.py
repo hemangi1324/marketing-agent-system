@@ -1,6 +1,5 @@
 import sys
 import os
-print("RUNNING ANALYTICS AGENT FILE")
 # Fix module resolution — must be before any local imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -11,11 +10,24 @@ from crewai import Agent, Task, Crew
 
 load_dotenv()
 
-# ── TODO: swap these 2 lines when M2 finishes db/session.py ─────────────────
-# from db.session import save_memory, save_reasoning
-def save_memory(campaign_id, festival_tag, mortem_dict): pass
-def save_reasoning(agent_name, thought, campaign_id): pass
-# ─────────────────────────────────────────────────────────────────────────────
+# ── DB persistence (replaces old no-op stubs) ─────────────────────────────────
+from database import campaign_store
+from memory.campaign_memory import save_campaign_memory
+
+def save_memory(campaign_id, festival_tag, mortem_dict):
+    """Persist campaign memory for future festival campaigns."""
+    if festival_tag:
+        save_campaign_memory(campaign_id, festival_tag, mortem_dict)
+
+def save_reasoning(agent_name, thought, campaign_id):
+    """Log agent reasoning to audit trail + save analytics to DB."""
+    campaign_store.log_agent_step(
+        campaign_id=campaign_id or 0,
+        agent_name=agent_name,
+        status="success",
+        output_summary=thought[:200] if thought else None,
+    )
+
 
 
 # ── LLM setup ────────────────────────────────────────────────────────────────
@@ -209,3 +221,38 @@ if __name__ == "__main__":
     print(f"\nHealed      : {result.get('healed')}")
     print(f"Improved    : {result.get('improved_from_last')}")
     print(f"New CTR     : {result.get('new_ctr')}%")
+
+
+# ── Structured Pydantic variant ───────────────────────────────────────────────
+def run_analytics_structured(analytics_input) -> "AnalyticsOutput":
+    """
+    Structured wrapper — accepts AnalyticsInput, returns AnalyticsOutput.
+    Maintains full backward compatibility: delegates to run_analytics().
+    Also persists result to campaign DB automatically.
+
+    Args:
+        analytics_input : schemas.analytics.AnalyticsInput instance
+
+    Returns:
+        schemas.analytics.AnalyticsOutput (Pydantic)
+    """
+    from schemas.analytics import AnalyticsInput, AnalyticsOutput
+
+    raw_result = run_analytics(
+        campaign_id=analytics_input.campaign_id,
+        attempt=analytics_input.attempt,
+        old_metrics=analytics_input.to_old_metrics_dict(),
+        new_metrics=analytics_input.to_new_metrics_dict(),
+        festival_tag=analytics_input.festival_tag,
+    )
+
+    output = AnalyticsOutput.from_dict(raw_result)
+
+    # Persist structured analytics output to DB
+    from database import campaign_store
+    campaign_store.save_analytics_result(
+        analytics_input.campaign_id,
+        output.to_dict()
+    )
+
+    return output

@@ -4,3 +4,5 @@
 {"status": "sent", "campaign_id": "test-001", "recipient": "hirohamata123@gmail.com", "subject": "\u2705 Marketing AI \u2014 SMTP Test", "logged_at": "2026-03-26T17:08:55.712443"}
 {"status": "sent", "campaign_id": 1, "recipient": "suhanisatav81@gmail.com", "subject": "Line:** Welcome to Acme SaaS! Let's save you time (right now)", "logged_at": "2026-03-26T17:12:16.814122"}
 {"status": "sent", "campaign_id": 1, "recipient": "sawantshravani2836@gmail.com", "subject": "Line:** Welcome to Acme SaaS! Let's save you time (right now)", "logged_at": "2026-03-26T17:12:20.295274"}
+{"status": "sent", "campaign_id": 200, "recipient": "suhanisatav81@gmail.com", "subject": "This Diwali, Light Up Your Business with Acme SaaS!", "logged_at": "2026-03-26T23:52:46.942899"}
+{"status": "sent", "campaign_id": 200, "recipient": "sawantshravani2836@gmail.com", "subject": "This Diwali, Light Up Your Business with Acme SaaS!", "logged_at": "2026-03-26T23:52:48.426291"}

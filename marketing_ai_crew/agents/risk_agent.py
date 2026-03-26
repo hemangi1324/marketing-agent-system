@@ -9,10 +9,23 @@ from tools.slack_tool import slack_alert_tool
 
 load_dotenv(override=True)
 
-# ── TODO: swap these 2 lines when M2 finishes db/session.py ─────────────────
-# from db.session import save_risk, save_reasoning
-def save_risk(output_id, scores_dict): pass
-def save_reasoning(agent_name, thought, campaign_id): pass
+# ── DB persistence (replaces old no-op stubs) ─────────────────────────────────
+from database import campaign_store
+
+def save_risk(output_id, scores_dict):
+    """Persist risk scores to the campaign DB."""
+    if output_id is not None:
+        campaign_store.save_risk_result(int(output_id), scores_dict)
+
+def save_reasoning(agent_name, thought, campaign_id):
+    """Log agent reasoning step to audit trail."""
+    campaign_store.log_agent_step(
+        campaign_id=campaign_id or 0,
+        agent_name=agent_name,
+        status="success",
+        output_summary=thought[:200] if thought else None,
+    )
+
 
 # ── LLM setup ────────────────────────────────────────────────────────────────
 from config.settings import get_llm
@@ -152,3 +165,28 @@ if __name__ == "__main__":
     print("\n── Risk Report ──────────────────────────────")
     print(json.dumps(result, indent=2))
     print(f"\nGreen light: {result.get('green_light')}")
+
+
+# ── Structured Pydantic variant ───────────────────────────────────────────────
+def run_risk_check_structured(risk_input, campaign_id: int = None) -> "RiskOutput":
+    """
+    Structured wrapper — accepts RiskInput, returns RiskOutput.
+    Maintains full backward compatibility: delegates to run_risk_check().
+
+    Args:
+        risk_input  : schemas.risk.RiskInput instance
+        campaign_id : optional override (uses risk_input.campaign_id if not set)
+
+    Returns:
+        schemas.risk.RiskOutput (Pydantic)
+    """
+    from schemas.risk import RiskInput, RiskOutput
+
+    cid = campaign_id or risk_input.campaign_id
+    content_dict = risk_input.to_content_dict()
+    raw_result = run_risk_check(
+        content_dict=content_dict,
+        campaign_id=cid,
+        output_id=cid,
+    )
+    return RiskOutput.from_dict(raw_result)

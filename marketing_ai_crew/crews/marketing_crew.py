@@ -82,7 +82,7 @@ def run_tier(tier: int, briefs: dict = None, verbose: bool = True):
 
 def run_full_crew(briefs: dict = None, verbose: bool = True):
     console.print(Panel(
-        "[bold]Running all 10 marketing agents sequentially.[/bold]\nThis will take several minutes on local Ollama.",
+        "[bold]Running all 10 marketing agents sequentially.[/bold]\n",
         title="[bold magenta]Full Marketing Crew[/bold magenta]", border_style="magenta",
     ))
     agents = get_all_agents()

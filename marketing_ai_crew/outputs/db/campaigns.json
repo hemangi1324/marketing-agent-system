@@ -1,0 +1,129 @@
+{
+  "200": {
+    "campaign_id": 200,
+    "brief": "Diwali promotional campaign",
+    "festival_tag": "diwali",
+    "target_audience": null,
+    "created_at": "2026-03-26T23:51:35.044235",
+    "updated_at": "2026-03-26T23:51:35.044235",
+    "strategy_output": {
+      "campaign_theme": "This Diwali, Empower Your Business to Shine Brighter.",
+      "tone": "Friendly, inspiring, and celebratory.",
+      "key_messages": [
+        "Bring new light to your business operations this Diwali.",
+        "Gift your small business the power of smart automation and growth.",
+        "Celebrate prosperity and efficiency: make time for what matters most.",
+        "Unlock a brighter, more productive future for your business with Acme SaaS."
+      ],
+      "platform_priorities": {
+        "instagram": "Visually rich, festive content showcasing small business owners celebrating Diwali with more free time thanks to Acme. Focus on relatable lifestyle and success stories, short, inspiring videos.",
+        "email": "Warm, personalized Diwali greetings alongside exclusive festive offers for Acme SaaS. Highlight time-saving and growth benefits with clear calls-to-action.",
+        "linkedin": "Thought leadership articles on 'Diwali and Business Growth' or 'Festive Season Efficiency for SMBs', featuring Acme SaaS as a solution. Professional, yet festive tone."
+      },
+      "audience_insight": "During Diwali, small business owners, while immersed in festive celebrations with their families, are also reflecting on their business's growth and efficiency, seeking solutions that promise a brighter, less stressful future.",
+      "do_not_use": [
+        "corporate jargon",
+        "overly technical terms",
+        "condescending language",
+        "work harder",
+        "complex setup"
+      ]
+    },
+    "content_output": {
+      "email_content": {
+        "subject": "This Diwali, Light Up Your Business with Acme SaaS!",
+        "body": "Dear [Business Owner Name],\n\nDiwali, the festival of lights, is a time for celebration, reflection, and new beginnings. As you gather with loved ones, we at Acme SaaS want to extend our warmest wishes and help you illuminate a brighter future for your business.\n\nThis festive season, imagine bringing new light to your business operations. What if you could spend less time on manual tasks and more time on what truly matters \u2013 celebrating with family and focusing on growth? With Acme SaaS, you can!\n\nWe understand that as a small business owner, every moment counts. That\u2019s why we\u2019ve designed Acme SaaS to be your trusted partner in smart automation and efficiency. Gift your small business the power of streamlined operations this Diwali, and watch it shine brighter than ever before. Our user-friendly tools are built to save you precious hours each week, giving you the enterprise power you need, at a price point that makes sense for your business.\n\nCelebrate prosperity and efficiency this Diwali. By automating repetitive tasks, you'll unlock more time for strategic planning, customer engagement, and personal festivities. Acme SaaS helps you grow without the need for endless hiring, making your team of one feel a lot bigger.\n\nThis Diwali, we\u2019re excited to offer an exclusive festive discount on all our plans. It\u2019s the perfect opportunity to unlock a brighter, more productive future for your business with Acme SaaS.\n\nReady to light up your business efficiency this Diwali?\n\n[Call to Action Button: Explore Diwali Offers Now!]\n\nWishing you and your family a very Happy and Prosperous Diwali!\n\nWarmly,\n\nThe Acme SaaS Team\n[Your Website Link]",
+        "preview_text": "Celebrate prosperity & efficiency! Discover how Acme SaaS brings new light to your operations this Diwali."
+      },
+      "social_content": {
+        "instagram_caption": "Light up your business this Diwali! \u2728 Spend less time on tasks, more on what matters. With Acme SaaS, empower your growth and celebrate efficiency! #Diwali #SmallBusiness #Automation #AcmeSaaS",
+        "twitter_post": "Happy Diwali! \u2728 This festive season, gift your small business the power of smart automation. Unlock efficiency, celebrate growth, and make time for what matters most with Acme SaaS. #Diwali #SMB #Automation",
+        "linkedin_post": "This Diwali, as small business owners reflect on the year, the dual focus on festive celebrations and business growth comes to the forefront. The festive season often brings a surge in activity, making efficiency more critical than ever.\n\nMany SMBs find themselves caught between managing daily operations and strategizing for future growth, especially during peak seasons. This is where smart automation becomes a game-changer. Rather than viewing the festive period as a time for 'more work', it can be an opportunity to 'work smarter' and empower your business to truly shine.\n\nAcme SaaS enables small businesses to automate repetitive tasks, freeing up valuable time that can be reinvested into customer engagement, innovation, or even enjoying family celebrations. Imagine bringing new light to your business operations, not through longer hours, but through intelligent systems that foster productivity and growth.\n\nThis Diwali, consider gifting your small business the power of smart automation. Celebrate prosperity and efficiency, and unlock a brighter, more productive future. Make time for what matters most, both personally and professionally. #DiwaliBusiness #SMBGrowth #AutomationForSMBs #AcmeSaaS #Efficiency",
+        "subject_line_variants": [
+          "Spark New Growth: Your Business Deserves This Diwali Gift!",
+          "Happy Diwali! Unlock More Time & Prosperity for Your Business",
+          "Illuminate Your Operations: Celebrate a Brighter Business Future"
+        ]
+      },
+      "brand_tone": "Friendly, inspiring, and celebratory"
+    },
+    "risk_output": {
+      "brand_safety": 9,
+      "legal_risk": 8,
+      "cultural_sensitivity": 10,
+      "green_light": true,
+      "flag_reason": null,
+      "explanation": "The campaign content is culturally sensitive and respectfully integrates Diwali themes with business benefits. Brand safety is high due to positive association, and legal risk is low as claims are general marketing statements, assuming discount terms are transparent.",
+      "_updated_at": "2026-03-26T23:52:43.384166"
+    },
+    "communication_output": {
+      "emails_sent": 2,
+      "emails_failed": 0,
+      "overall_success": true,
+      "green_light": true
+    },
+    "analytics_output": {
+      "healed": false,
+      "new_ctr": 0.8,
+      "new_open_rate": 22.0,
+      "improved_from_last": true,
+      "post_mortem": {
+        "what_worked": "The significant increase in Open Rate from 15.0% to 22.0% suggests effective optimization of the subject line and/or preview text, successfully capturing user attention amidst the Diwali festive season. This led to a positive, albeit insufficient, increase in CTR from 0.4% to 0.8%.",
+        "what_failed": "Despite improving the Open Rate and CTR, the campaign still falls short of the 1.0% CTR healing target. The conversion rate from open to click remains insufficient, indicating that the content, offer, or Call-to-Action (CTA) within the email did not compel enough recipients to click through after opening.",
+        "market_context": "Operating within the highly competitive Diwali festive period, consumers are experiencing an influx of promotional messages and offers from numerous brands. While the campaign managed to improve initial engagement, the overall value proposition or offer might not be strong enough to differentiate itself and drive clicks above the 1% threshold in this saturated environment.",
+        "recommendation": "Optimize the in-email content by A/B testing clearer, more prominent Calls-to-Action (CTAs) and enhancing the value proposition (e.g., stronger discount, exclusive offer, clearer benefits) to encourage more openers to click through."
+      },
+      "_updated_at": "2026-03-26T23:53:02.778558",
+      "summary_string": "Healed: False | CTR: 0.8% | Recommendation: Optimize the in-email content by A/B testing clearer, more prominent Calls-to-Action (CTAs) and enhancing the value proposition (e.g., stronger discount, exclusive offer, clearer benefits) to encourage more openers to click through."
+    },
+    "green_light": true,
+    "pipeline_complete": true,
+    "pipeline_blocked": false,
+    "block_reason": null,
+    "delegation_count": 0,
+    "step_logs": [
+      {
+        "agent_name": "strategy_agent",
+        "started_at": "2026-03-26T23:52:10.769981",
+        "completed_at": "2026-03-26T23:52:10.769981",
+        "status": "success",
+        "output_summary": "This Diwali, Empower Your Business to Shine Brighter.",
+        "error": null
+      },
+      {
+        "agent_name": "content_agent",
+        "started_at": "2026-03-26T23:52:33.091932",
+        "completed_at": "2026-03-26T23:52:33.091932",
+        "status": "success",
+        "output_summary": "Subject: This Diwali, Light Up Your Business with Acme SaaS!",
+        "error": null
+      },
+      {
+        "agent_name": "risk_agent",
+        "started_at": "2026-03-26T23:52:43.385679",
+        "completed_at": "2026-03-26T23:52:43.385679",
+        "status": "success",
+        "output_summary": "green_light=True",
+        "error": null
+      },
+      {
+        "agent_name": "communication_layer",
+        "started_at": "2026-03-26T23:52:49.728741",
+        "completed_at": "2026-03-26T23:52:49.728741",
+        "status": "success",
+        "output_summary": "sent=2",
+        "error": null
+      },
+      {
+        "agent_name": "analytics_agent",
+        "started_at": "2026-03-26T23:53:02.782140",
+        "completed_at": "2026-03-26T23:53:02.782140",
+        "status": "success",
+        "output_summary": "Healed: False | CTR: 0.8% | Recommendation: Optimize the in-email content by A/B testing clearer, mo",
+        "error": null
+      }
+    ],
+    "historical_context": "No previous campaigns found for this context.",
+    "_updated_at": "2026-03-26T23:53:02.782140"
+  }
+}

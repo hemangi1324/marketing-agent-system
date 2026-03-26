@@ -1,0 +1,11 @@
+{
+  "200": {
+    "brand_safety": 9,
+    "legal_risk": 8,
+    "cultural_sensitivity": 10,
+    "green_light": true,
+    "flag_reason": null,
+    "explanation": "The campaign content is culturally sensitive and respectfully integrates Diwali themes with business benefits. Brand safety is high due to positive association, and legal risk is low as claims are general marketing statements, assuming discount terms are transparent.",
+    "_updated_at": "2026-03-26T23:52:43.384166"
+  }
+}
