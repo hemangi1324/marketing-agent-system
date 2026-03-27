@@ -169,13 +169,13 @@ def run_strategy(
     return strategy_output
 
 
-# ── Quick test ────────────────────────────────────────────────────────────────
-if __name__ == "__main__":
-    result = run_strategy(
-        brief="Diwali promotional campaign for Acme SaaS — 30% discount for the festival week",
-        campaign_id=99,
-        festival_tag="diwali",
-        target_audience="SMB owners in India, 25-45 years old",
-    )
-    print("\n── Strategy Output ──────────────────────────────────")
-    print(json.dumps(result.model_dump(), indent=2))
+# # ── Quick test ────────────────────────────────────────────────────────────────
+# if __name__ == "__main__":
+#     result = run_strategy(
+#         brief="Diwali promotional campaign for Acme SaaS — 30% discount for the festival week",
+#         campaign_id=99,
+#         festival_tag="diwali",
+#         target_audience="SMB owners in India, 25-45 years old",
+#     )
+#     print("\n── Strategy Output ──────────────────────────────────")
+#     print(json.dumps(result.model_dump(), indent=2))

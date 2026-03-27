@@ -107,15 +107,15 @@ def slack_alert_tool(input_str: str) -> str:
 
 
 # ── Quick test (run this file directly to verify your webhook works) ─────────
-if __name__ == "__main__":
-    test_scores = {
-        "brand_safety": 3,
-        "legal_risk": 8,
-        "cultural_sensitivity": 4
-    }
-    result = send_slack_alert(
-        campaign_id=99,
-        scores_dict=test_scores,
-        flag_reason="Brand safety and cultural sensitivity below threshold"
-    )
-    print(f"Test result: {result}")
+# if __name__ == "__main__":
+    # test_scores = {
+    #     "brand_safety": 3,
+    #     "legal_risk": 8,
+    #     "cultural_sensitivity": 4
+    # }
+    # result = send_slack_alert(
+    #     campaign_id=99,
+    #     scores_dict=test_scores,
+    #     flag_reason="Brand safety and cultural sensitivity below threshold"
+    # )
+    # print(f"Test result: {result}")

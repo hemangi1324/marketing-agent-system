@@ -99,6 +99,9 @@ CRITICAL RULES:
   - Never use words in the 'do_not_use' list from strategy
   - Make every piece of content feel like it was written by a human expert
   - The email body must NOT just repeat the subject line — build on it
+  - DO NOT include any hardcoded real or placeholder usernames (e.g., [Username])
+  - DO NOT include website links, URLs, or Call-To-Action (CTA) buttons
+  - The content should read naturally without boilerplate template placeholders
 
 Step 3: Return ONLY a valid JSON object — no markdown, no backticks, no extra text.
 Use exactly this structure:

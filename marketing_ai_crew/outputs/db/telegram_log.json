@@ -3,5 +3,10 @@
     "campaign_id": 200,
     "result": "ok",
     "_updated_at": "2026-03-26T23:52:49.723392"
+  },
+  "telegram_1": {
+    "campaign_id": 1,
+    "result": "ok",
+    "_updated_at": "2026-03-27T23:51:53.094935"
   }
 }

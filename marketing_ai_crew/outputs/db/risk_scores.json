@@ -7,5 +7,14 @@
     "flag_reason": null,
     "explanation": "The campaign content is culturally sensitive and respectfully integrates Diwali themes with business benefits. Brand safety is high due to positive association, and legal risk is low as claims are general marketing statements, assuming discount terms are transparent.",
     "_updated_at": "2026-03-26T23:52:43.384166"
+  },
+  "1": {
+    "brand_safety": 9,
+    "legal_risk": 6,
+    "cultural_sensitivity": 7,
+    "green_light": true,
+    "flag_reason": null,
+    "explanation": "The campaign is generally brand safe. While the integration of Dussehra's 'victory' theme with conquering manual work is common, there's a minor risk of it being perceived as overly commercializing a festival by a conservative audience. The claim to 'save up to 10 hours a week' presents a legal risk and requires robust substantiation to comply with advertising standards and consumer protection laws.",
+    "_updated_at": "2026-03-27T23:51:42.562276"
   }
 }

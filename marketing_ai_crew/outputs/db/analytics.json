@@ -11,5 +11,18 @@
       "recommendation": "Optimize the in-email content by A/B testing clearer, more prominent Calls-to-Action (CTAs) and enhancing the value proposition (e.g., stronger discount, exclusive offer, clearer benefits) to encourage more openers to click through."
     },
     "_updated_at": "2026-03-26T23:53:02.778558"
+  },
+  "1": {
+    "healed": false,
+    "new_ctr": 0.8,
+    "new_open_rate": 22.0,
+    "improved_from_last": true,
+    "post_mortem": {
+      "what_worked": "The significant increase in Open Rate from 15.0% to 22.0% suggests that the subject line or initial creative was more compelling, successfully drawing users' attention and prompting them to engage with the initial message. The doubling of CTR from 0.4% to 0.8% indicates a positive, albeit insufficient, step in user engagement.",
+      "what_failed": "While improvement is evident, the CTR of 0.8% still falls short of the 1.0% healing threshold. This indicates that the content *after* the initial open \u2013 the main creative, the offer, or the call-to-action \u2013 is not persuasive enough to convert opens into clicks. Users are opening but not taking the desired next step.",
+      "market_context": "No specific festival context or significant market shifts were observed during this period, suggesting performance changes are primarily attributable to campaign adjustments rather than external factors.",
+      "recommendation": "Focus the next iteration on a complete overhaul of the in-body creative, the clarity of the value proposition, and the strength of the call-to-action to bridge the gap between open and click."
+    },
+    "_updated_at": "2026-03-27T23:52:06.162653"
   }
 }

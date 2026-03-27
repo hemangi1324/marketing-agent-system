@@ -228,6 +228,20 @@ Present options. Human team chooses direction.
     )
 
 
+def risk_task(agent, brief):
+    return Task(
+        description=f"""
+Task: {brief}
+
+Review the provided campaign content 
+and score it on brand safety, legal risk, and cultural sensitivity.
+""",
+        expected_output="JSON risk report with scores and explanation.",
+        agent=agent,
+        output_file=_out("risk"),
+    )
+
+
 def email_dispatch_task(agent, brief):
     return Task(
         description=f"""
@@ -255,6 +269,7 @@ After sending, confirm: how many were sent, how many failed.
 
 
 TASK_MAP = {
+    "strategy":          strategy_task,
     "content":           content_task,
     "social":            social_task,
     "leads":             lead_gen_task,
@@ -265,10 +280,12 @@ TASK_MAP = {
     "product_marketing": product_marketing_task,
     "pr":                pr_task,
     "brand_strategy":    brand_strategy_task,
+    "risk":              risk_task,
     "email_dispatch":    lambda agent, brief: email_dispatch_task(agent, brief),
 }
 
 DEFAULT_BRIEFS = {
+    "strategy":          "Provide the best strategy for an e-commerce campaign in India",
     "content":           "Write content for our Acme Automate 2.0 feature launch",
     "social":            "Build next week's social media calendar for our product launch",
     "leads":             "Find 3 prospects in the fintech or e-commerce space",
@@ -279,6 +296,7 @@ DEFAULT_BRIEFS = {
     "product_marketing": "Launch campaign for Acme Automate 2.0 workflow automation",
     "pr":                "Prepare press materials for our 1000-customer milestone",
     "brand_strategy":    "Research positioning options for SMB-focused SaaS market",
+    "risk":              "Review content for brand safety, legal risk and cultural sensitivity.",
     "email_dispatch":    "Send the risk-approved email campaign to all subscribers",
 }
 

@@ -23,8 +23,8 @@ console = Console()
 
 
 @click.command()
-@click.option("--agent", "-a", default="content",
-    help="Agent key: content|social|leads|analytics|email|ads|community|product_marketing|pr|brand_strategy|tier1|tier2|tier3|all|email-pipeline")
+@click.option("--agent", "-a", default="all",
+    help="Agent key: content|analytics|brand_strategy|risk|all")
 @click.option("--task",  "-t", default="", help="Task brief. Leave blank for default.")
 @click.option("--quiet", "-q", is_flag=True, default=False)
 @click.option("--list",  "-l", "list_agents", is_flag=True, default=False)
@@ -82,16 +82,14 @@ def main(agent, task, quiet, list_agents, campaign_id, schedule, run_now,
         return
 
     # ── Email pipeline mode ─────────────────────────────────────────────────
-    if agent == "email-pipeline":
-        from crews.marketing_crew import run_email_campaign_pipeline
-        run_email_campaign_pipeline(brief=task, campaign_id=campaign_id, verbose=verbose)
-        return
+    # if agent == "email-pipeline":
+    #     from crews.marketing_crew import run_email_campaign_pipeline
+    #     run_email_campaign_pipeline(brief=task, campaign_id=campaign_id, verbose=verbose)
+    #     return
 
-    from crews.marketing_crew import run_single_agent, run_full_crew, run_tier
+    from crews.marketing_crew import run_single_agent, run_full_crew
     if agent == "all":
         run_full_crew(verbose=verbose)
-    elif agent.startswith("tier"):
-        run_tier(tier=int(agent.replace("tier", "")), verbose=verbose)
     else:
         run_single_agent(agent_name=agent, brief=task, verbose=verbose)
 

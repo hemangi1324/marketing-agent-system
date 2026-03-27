@@ -148,23 +148,23 @@ def run_risk_check(content_dict: dict, campaign_id: int, output_id: int = None) 
 
     return scores
 
-# ── Quick test ────────────────────────────────────────────────────────────────
-if __name__ == "__main__":
-    sample_content = {
-        "email_subject": "Exclusive Diwali Sale — 50% OFF everything!",
-        "email_body": (
-            "Dear Customer you are stupid and mad idiot celebrate Diwali with our biggest sale ever. "
-            "Shop now and get 50% off all products. Limited time offer!"
-        ),
-        "instagram_caption": "✨ Diwali vibes + massive savings = perfect combo! #Diwali #Sale #Deals",
-        "twitter_post": "🪔 Big Diwali Sale is LIVE! 50% off everything. Shop now → [link] #Diwali #Offers"
-    }
+# # ── Quick test ────────────────────────────────────────────────────────────────
+# if __name__ == "__main__":
+#     sample_content = {
+#         "email_subject": "Exclusive Diwali Sale — 50% OFF everything!",
+#         "email_body": (
+#             "Dear Customer you are stupid and mad idiot celebrate Diwali with our biggest sale ever. "
+#             "Shop now and get 50% off all products. Limited time offer!"
+#         ),
+#         "instagram_caption": "✨ Diwali vibes + massive savings = perfect combo! #Diwali #Sale #Deals",
+#         "twitter_post": "🪔 Big Diwali Sale is LIVE! 50% off everything. Shop now → [link] #Diwali #Offers"
+#     }
 
-    result = run_risk_check(content_dict=sample_content, campaign_id=99, output_id=None)
+#     result = run_risk_check(content_dict=sample_content, campaign_id=99, output_id=None)
 
-    print("\n── Risk Report ──────────────────────────────")
-    print(json.dumps(result, indent=2))
-    print(f"\nGreen light: {result.get('green_light')}")
+#     print("\n── Risk Report ──────────────────────────────")
+#     print(json.dumps(result, indent=2))
+#     print(f"\nGreen light: {result.get('green_light')}")
 
 
 # ── Structured Pydantic variant ───────────────────────────────────────────────
@@ -189,4 +189,4 @@ def run_risk_check_structured(risk_input, campaign_id: int = None) -> "RiskOutpu
         campaign_id=cid,
         output_id=cid,
     )
-    return RiskOutput.from_dict(raw_result)
+    return RiskOutput.from_dict(raw_result)

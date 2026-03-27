@@ -125,5 +125,130 @@
     ],
     "historical_context": "No previous campaigns found for this context.",
     "_updated_at": "2026-03-26T23:53:02.782140"
+  },
+  "1": {
+    "campaign_id": 1,
+    "brief": "Write a campiagn for Dussehra festival",
+    "festival_tag": null,
+    "target_audience": null,
+    "created_at": "2026-03-27T23:50:33.817907",
+    "updated_at": "2026-03-27T23:50:33.817907",
+    "strategy_output": {
+      "campaign_theme": "Conquer manual work this Dussehra: Automate, grow, and celebrate your business victory!",
+      "tone": "Friendly, confident, and action-oriented",
+      "key_messages": [
+        "Defeat operational inefficiencies and save up to 10 hours a week.",
+        "Access enterprise-level automation power without the enterprise price tag.",
+        "Expand your business capabilities, making your small team feel bigger and more effective.",
+        "This Dussehra, celebrate your victory over manual tasks and reclaim your time."
+      ],
+      "platform_priorities": {
+        "email": "Highlight clear value propositions and strong, action-oriented Calls-to-Action (CTAs) to drive clicks, leveraging Dussehra as a celebratory occasion for business growth and efficiency.",
+        "social_media": "Visual-first content showcasing the 'victory' over manual work using engaging, relatable scenarios and short, benefit-driven captions. Include productivity tips and automation education relevant to small businesses.",
+        "blog": "In-depth articles and customer success stories detailing how Acme SaaS helps businesses 'conquer' their challenges, aligning with the Dussehra theme of overcoming obstacles."
+      },
+      "audience_insight": "Small business owners are actively seeking practical, affordable solutions to overcome the 'evil' of manual work and limited resources, enabling them to save time, grow, and achieve professionalism without significant overhead.",
+      "do_not_use": [
+        "corporate jargon",
+        "overly technical terms",
+        "condescending language"
+      ]
+    },
+    "content_output": {
+      "email_content": {
+        "subject": "Conquer Manual Work This Dussehra: Reclaim Your Time!",
+        "body": "Dear Small Business Owner,\n\nThis Dussehra, as we celebrate victories, why not conquer the biggest challenge in your business: manual work? Imagine a world where repetitive tasks don't eat into your precious time, allowing you to focus on what truly matters \u2013 growing your business.\n\nAt Acme SaaS, we understand the daily struggles of running a small business. The endless administrative tasks, the juggling of multiple tools, and the feeling that you're always playing catch-up. That's why we've designed our automation solutions to be powerful yet affordable, bringing enterprise-level capabilities right to your fingertips without the hefty price tag.\n\nWith Acme Automate, you can defeat operational inefficiencies and save up to 10 hours a week. Think of the extra time you'll have to strategize, innovate, or even just enjoy a well-deserved break! Our intuitive platform helps you streamline workflows, ensuring your business runs smoothly and efficiently, even with a small team. You'll expand your business capabilities, making your small team feel bigger and more effective.\n\nThis festive season, don't just celebrate traditional victories; celebrate your victory over manual tasks. Let Acme SaaS empower you to reclaim your time, boost your productivity, and achieve the growth you've always envisioned. It's time to automate, grow, and truly celebrate your business victory.\n\nWarm regards,\nThe Acme SaaS Team",
+        "preview_text": "Celebrate your business victory this Dussehra! Automate tasks, save time, and grow your business."
+      },
+      "social_content": {
+        "instagram_caption": "This Dussehra, conquer manual work & celebrate your biz victory! \u2728 Save 10+ hours/week with automation. Your small team just got bigger. #SmallBusiness #Automation #Dussehra #WorkSmarter",
+        "twitter_post": "Happy Dussehra! \ud83c\udf89 Conquer manual work, save 10+ hours a week, and grow your small business with smart automation. Feel the victory! #SmallBiz #Productivity",
+        "linkedin_post": "This Dussehra, let's reflect on the true meaning of conquering challenges \u2013 not just in traditions, but in business. Small and medium-sized businesses often grapple with the 'evil' of manual, repetitive tasks that hinder growth and productivity. The good news? Enterprise-level automation is now accessible without the enterprise price tag.\n\nBy leveraging smart automation solutions, SMBs can defeat operational inefficiencies, saving up to 10 hours a week. This reclaimed time isn't just about efficiency; it's about empowering small teams to expand their capabilities, allowing them to achieve more with existing resources. Imagine the impact of transforming your small team into a powerhouse of productivity and innovation. This festive season, celebrate the victory over manual work and usher in an era of automated growth and efficiency for your business.",
+        "subject_line_variants": [
+          "Happy Dussehra: Automate Your Way to Business Victory!",
+          "Reclaim Your Time This Dussehra: Conquer Manual Work!",
+          "Dussehra Special: Grow Your Business, Defeat Manual Tasks"
+        ]
+      },
+      "brand_tone": "Friendly, confident, and action-oriented"
+    },
+    "risk_output": {
+      "brand_safety": 9,
+      "legal_risk": 6,
+      "cultural_sensitivity": 7,
+      "green_light": true,
+      "flag_reason": null,
+      "explanation": "The campaign is generally brand safe. While the integration of Dussehra's 'victory' theme with conquering manual work is common, there's a minor risk of it being perceived as overly commercializing a festival by a conservative audience. The claim to 'save up to 10 hours a week' presents a legal risk and requires robust substantiation to comply with advertising standards and consumer protection laws.",
+      "_updated_at": "2026-03-27T23:51:42.562276"
+    },
+    "communication_output": {
+      "emails_sent": 2,
+      "emails_failed": 0,
+      "overall_success": true,
+      "green_light": true
+    },
+    "analytics_output": {
+      "healed": false,
+      "new_ctr": 0.8,
+      "new_open_rate": 22.0,
+      "improved_from_last": true,
+      "post_mortem": {
+        "what_worked": "The significant increase in Open Rate from 15.0% to 22.0% suggests that the subject line or initial creative was more compelling, successfully drawing users' attention and prompting them to engage with the initial message. The doubling of CTR from 0.4% to 0.8% indicates a positive, albeit insufficient, step in user engagement.",
+        "what_failed": "While improvement is evident, the CTR of 0.8% still falls short of the 1.0% healing threshold. This indicates that the content *after* the initial open \u2013 the main creative, the offer, or the call-to-action \u2013 is not persuasive enough to convert opens into clicks. Users are opening but not taking the desired next step.",
+        "market_context": "No specific festival context or significant market shifts were observed during this period, suggesting performance changes are primarily attributable to campaign adjustments rather than external factors.",
+        "recommendation": "Focus the next iteration on a complete overhaul of the in-body creative, the clarity of the value proposition, and the strength of the call-to-action to bridge the gap between open and click."
+      },
+      "_updated_at": "2026-03-27T23:52:06.162653",
+      "summary_string": "Healed: False | CTR: 0.8% | Recommendation: Focus the next iteration on a complete overhaul of the in-body creative, the clarity of the value proposition, and the strength of the call-to-action to bridge the gap between open and click."
+    },
+    "green_light": true,
+    "pipeline_complete": true,
+    "pipeline_blocked": false,
+    "block_reason": null,
+    "delegation_count": 0,
+    "step_logs": [
+      {
+        "agent_name": "strategy_agent",
+        "started_at": "2026-03-27T23:51:15.598285",
+        "completed_at": "2026-03-27T23:51:15.598285",
+        "status": "success",
+        "output_summary": "Conquer manual work this Dussehra: Automate, grow, and celebrate your business victory!",
+        "error": null
+      },
+      {
+        "agent_name": "content_agent",
+        "started_at": "2026-03-27T23:51:29.126096",
+        "completed_at": "2026-03-27T23:51:29.126096",
+        "status": "success",
+        "output_summary": "Subject: Conquer Manual Work This Dussehra: Reclaim Your Time!",
+        "error": null
+      },
+      {
+        "agent_name": "risk_agent",
+        "started_at": "2026-03-27T23:51:42.568350",
+        "completed_at": "2026-03-27T23:51:42.568350",
+        "status": "success",
+        "output_summary": "green_light=True",
+        "error": null
+      },
+      {
+        "agent_name": "communication_layer",
+        "started_at": "2026-03-27T23:51:53.103555",
+        "completed_at": "2026-03-27T23:51:53.103555",
+        "status": "success",
+        "output_summary": "sent=2",
+        "error": null
+      },
+      {
+        "agent_name": "analytics_agent",
+        "started_at": "2026-03-27T23:52:06.166888",
+        "completed_at": "2026-03-27T23:52:06.166888",
+        "status": "success",
+        "output_summary": "Healed: False | CTR: 0.8% | Recommendation: Focus the next iteration on a complete overhaul of the i",
+        "error": null
+      }
+    ],
+    "historical_context": "=== Historical Campaign Insights ===\n\n[Campaign #1] Brief: Write a campiagn for Holi festival\n  Risk Green Light : True\n  What Worked      : The changes implemented during healing attempt #1 significantly improved the campaign's Open Rate, moving from 15.0% to 22.0%. This indicates a more compelling subject line or pre-header text that successfully captured user attention and encouraged initial engagement.\n  Recommendation   : The primary focus for the next attempt must be on optimizing the content beyond the initial open. A/B test variations of the ad creative or email body, emphasizing a clearer value proposition, stronger benefit-driven copy, and more prominent, action-oriented Calls-to-Action to push CTR above 1.0%.\n\n[Campaign #200] Brief: Diwali promotional campaign\n  Risk Green Light : True\n  What Worked      : The significant increase in Open Rate from 15.0% to 22.0% suggests effective optimization of the subject line and/or preview text, successfully capturing user attention amidst the Diwali festive season. This led to a positive, albeit insufficient, increase in CTR from 0.4% to 0.8%.\n  Recommendation   : Optimize the in-email content by A/B testing clearer, more prominent Calls-to-Action (CTAs) and enhancing the value proposition (e.g., stronger discount, exclusive offer, clearer benefits) to encourage more openers to click through.\n=== End of History ===",
+    "_updated_at": "2026-03-27T23:52:06.167917"
   }
 }
